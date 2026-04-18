@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "990529227465",
+    "project_id": "roadresq-bd6b0",
+    "storage_bucket": "roadresq-bd6b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:990529227465:android:0c98468120447305431b18",
+        "android_client_info": {
+          "package_name": "BlackburnProjects.RoadResQ"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "990529227465-9hcc6l0qj17nk89uupsuieed7m25ape3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0nNKp7oQ06mawothVuScWIiMaY8Ev6dQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "990529227465-9hcc6l0qj17nk89uupsuieed7m25ape3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "990529227465-9f8o64c7qv2tbrd51u25o7jsc6f2fe73.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.roadResq"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:990529227465:android:218d6e3414b7b8de431b18",
+        "android_client_info": {
+          "package_name": "com.example.road_resq"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "990529227465-4hgqv3ifmv2gjphsl1c3pm3o8579ajj4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.road_resq",
+            "certificate_hash": "1b4d26f3f63f76ac58628da2a75e1c7d36db7719"
+          }
+        },
+        {
+          "client_id": "990529227465-9hcc6l0qj17nk89uupsuieed7m25ape3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0nNKp7oQ06mawothVuScWIiMaY8Ev6dQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "990529227465-9hcc6l0qj17nk89uupsuieed7m25ape3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "990529227465-9f8o64c7qv2tbrd51u25o7jsc6f2fe73.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.roadResq"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
