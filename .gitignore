@@ -17,3 +17,13 @@ ios/.symlinks/
 *.tmp
 *.swp
 .DS_Store
+
+# ─── STRICTLY EXCLUDED ───────────────────────────────────────────────────────
+
+# Reference/prompt files — NEVER commit
+ReferenceFilesPrompt/
+
+# Backend secrets — NEVER commit
+backend/.env
+backend/config/serviceAccountKey.json
+backend/node_modules/
