@@ -1,0 +1,41 @@
+import 'package:flutter/material.dart';
+import '../../services/firebase_service.dart';
+
+class DriverDashboard extends StatelessWidget {
+  const DriverDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final firebase = FirebaseService();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Driver Dashboard")),
+      body: StreamBuilder(
+        stream: firebase.listenJobs(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const CircularProgressIndicator();
+
+          final docs = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: docs.length,
+            itemBuilder: (context, i) {
+              final job = docs[i];
+
+              return ListTile(
+                title: Text("Job ${job.id}"),
+                subtitle: Text(job['status']),
+                trailing: ElevatedButton(
+                  onPressed: () {
+                    firebase.acceptJob(job.id, "driver123");
+                  },
+                  child: const Text("Accept"),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
