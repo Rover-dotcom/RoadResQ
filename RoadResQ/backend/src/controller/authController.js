@@ -13,7 +13,17 @@ exports.signIn = async (req, res) => {
     res.status(401).json({ status: "fail", message: error.message });
   }
 };
-
+// This is your controller logic
+exports.signIn = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await authService.loginUser(email, password); // Logic is clean!
+    res.status(200).json({ status: "success", user });
+  } catch (error) {
+    // If the error message matches your string, you can even check the type here
+    res.status(401).json({ status: "fail", message: error.message });
+  }
+};
 // Controller for Forgot Password
 exports.forgotPassword = async (req, res) => {
   try {
