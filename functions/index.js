@@ -1,46 +1,48 @@
 /**
- * Firebase Cloud Functions — RoadResQ
- *
- * This wraps the Express backend (backend/server.js) as a
- * Firebase HTTPS Cloud Function.
- *
- * Deployed URL: https://us-central1-roadresq-bd6b0.cloudfunctions.net/api
- *
- * To deploy: firebase deploy --only functions
- * To test locally: firebase emulators:start --only functions
+ * RoadResQ — Firebase Cloud Functions Entry Point
+ * Region: me-central1 (Doha, Qatar)
+ * URL: https://me-central1-roadresq-bd6b0.cloudfunctions.net/api
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const admin = require('firebase-admin');
+const express = require('express');
+const cors = require('cors');
 
-// Initialize Firebase Admin SDK once
+// Init Firebase Admin (uses auto-credentials in Cloud Functions)
 if (!admin.apps.length) {
-  admin.initializeApp();
+  admin.initializeApp({ projectId: 'roadresq-bd6b0' });
 }
 
-// Set function region to me-central1 — Doha, Qatar (boss requirement)
-setGlobalOptions({
-  region: 'me-central1',
-  memory: '256MiB',
-  timeoutSeconds: 60,
-});
+// Region: Doha, Qatar
+setGlobalOptions({ region: 'me-central1', memory: '256MiB', timeoutSeconds: 60 });
 
-// Import the Express app — same app used locally
-const app = require('../backend/server');
+// Build Express app inline (avoids cross-directory import issues)
+const app = express();
+app.use(cors({ origin: true }));
+app.use(express.json({ limit: '10mb' }));
 
-/**
- * Main API function — all endpoints available at /api/*
- * 
- * Examples:
- *   POST https://asia-southeast1-roadresq-bd6b0.cloudfunctions.net/api/api/auth/register
- *   GET  https://asia-southeast1-roadresq-bd6b0.cloudfunctions.net/api/api/jobs
- *   POST https://asia-southeast1-roadresq-bd6b0.cloudfunctions.net/api/api/jobs
- */
-exports.api = onRequest(
-  {
-    cors: true,
-    invoker: 'public', // Allow unauthenticated requests (JWT handled by app layer)
-  },
-  app
-);
+// Routes — all source is now copied into functions/
+const authRoutes   = require('./routes/authRoutes');
+const jobRoutes    = require('./routes/jobRoutes');
+const driverRoutes = require('./routes/driverRoutes');
+const quoteRoutes  = require('./routes/quoteRoutes');
+
+app.use('/api/auth',    authRoutes);
+app.use('/api/jobs',    jobRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/quotes',  quoteRoutes);
+
+app.get('/', (_req, res) => res.json({
+  service: 'RoadResQ API',
+  version: '2.0.0',
+  status: 'running',
+  region: 'me-central1 (Doha, Qatar)',
+  project: 'roadresq-bd6b0',
+}));
+
+app.use((_req, res) => res.status(404).json({ status: 'error', message: 'Route not found' }));
+app.use((err, _req, res, _next) => res.status(500).json({ status: 'error', message: err.message }));
+
+exports.api = onRequest({ cors: true, invoker: 'public' }, app);
