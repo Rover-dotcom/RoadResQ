@@ -1,10 +1,12 @@
 /**
- * Driver Controller — Week 3 Tasks 5, 10
+ * Driver Controller — RoadResQ (Updated)
  *
- * PUT  /api/drivers/status       → setStatusHandler()    (Week 3 Task 10)
- * GET  /api/drivers/:id          → getDriverHandler()
- * GET  /api/drivers              → getAllDriversHandler() (admin)
- * PUT  /api/drivers/:id/approve  → approveDriverHandler() (admin)
+ * POST  /api/drivers              → createDriverHandler()
+ * GET   /api/drivers              → getDriversHandler()
+ * GET   /api/drivers/:id          → getDriverByIdHandler()
+ * PUT   /api/drivers/status       → setStatusHandler()
+ * PUT   /api/drivers/:id/approve  → approveDriverHandler()
+ * PUT   /api/drivers/:id          → updateDriverHandler()
  */
 
 const { validationResult } = require('express-validator');
@@ -12,129 +14,220 @@ const {
   createDriver,
   getDriverById,
   getAllDrivers,
-  getMatchingDrivers,
-  updateDriver,
   setOnlineStatus,
   setApprovalStatus,
+  updateDriver,
+  VALID_TRUCK_TYPES,
+  VALID_SERVICE_TYPES,
 } = require('../models/driverModel');
+const { findMatchingDrivers } = require('../utils/matchingEngine');
+const { TRUCK_TYPES } = require('../utils/serviceEngine');
+
+const success = (res, data, code = 200) => res.status(code).json({ status: 'success', data });
+const error = (res, message, code = 400, extras = {}) =>
+  res.status(code).json({ status: 'error', message, ...extras });
+
+// ─── POST /api/drivers ────────────────────────────────────────────────────────
+
+/**
+ * Create a driver profile in Firestore.
+ * Run this AFTER POST /api/auth/register with role='driver'.
+ *
+ * Required: uid, name, email, phone, truckType
+ * Optional: truckModel, truckPlate, maxCapacityKg, maxLengthM, serviceTypes, licenseNumber
+ */
+const createDriverHandler = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return error(res, 'Validation failed', 400, {
+      errors: errors.array().map((e) => ({ field: e.path, message: e.msg })),
+    });
+  }
+
+  const { uid, name, email, phone, truckType, truckModel, truckPlate, truckColor,
+    maxCapacityKg, maxLengthM, serviceTypes, licenseNumber, licenseExpiry,
+    experience, profilePhotoUrl } = req.body;
+
+  // Validate truck type
+  if (truckType && !VALID_TRUCK_TYPES.includes(truckType)) {
+    return error(res, `Invalid truckType. Must be one of: ${VALID_TRUCK_TYPES.join(', ')}`);
+  }
+
+  // Check if driver already exists
+  const existing = await getDriverById(uid);
+  if (existing) return error(res, 'Driver profile already exists for this UID.', 409);
+
+  try {
+    const driver = await createDriver(uid, {
+      name, email, phone, truckType, truckModel, truckPlate, truckColor,
+      maxCapacityKg: maxCapacityKg ? parseFloat(maxCapacityKg) : null,
+      maxLengthM: maxLengthM ? parseFloat(maxLengthM) : null,
+      serviceTypes: serviceTypes || ['tow'],
+      licenseNumber, licenseExpiry, experience, profilePhotoUrl,
+    });
+    return success(res, driver, 201);
+  } catch (err) {
+    console.error('Create driver error:', err);
+    return error(res, 'Failed to create driver profile.', 500);
+  }
+};
+
+// ─── GET /api/drivers ─────────────────────────────────────────────────────────
+
+/**
+ * Get all drivers.
+ * Query: ?truckType=standard_tow&isOnline=true&isApproved=true
+ */
+const getDriversHandler = async (req, res) => {
+  const { truckType, isOnline, isApproved } = req.query;
+  try {
+    const drivers = await getAllDrivers({
+      truckType,
+      isOnline: isOnline !== undefined ? isOnline === 'true' : undefined,
+      isApproved: isApproved !== undefined ? isApproved === 'true' : undefined,
+    });
+    return success(res, { drivers, count: drivers.length });
+  } catch (err) {
+    console.error('Get drivers error:', err);
+    return error(res, 'Failed to fetch drivers.', 500);
+  }
+};
+
+// ─── GET /api/drivers/:id ─────────────────────────────────────────────────────
+
+const getDriverByIdHandler = async (req, res) => {
+  try {
+    const driver = await getDriverById(req.params.id);
+    if (!driver) return error(res, 'Driver not found.', 404);
+    return success(res, driver);
+  } catch (err) {
+    return error(res, 'Failed to fetch driver.', 500);
+  }
+};
 
 // ─── PUT /api/drivers/status ──────────────────────────────────────────────────
 
 /**
- * Week 3 Task 10: Driver Online/Offline
- * Body: { driverUid, isOnline, location?: { lat, lng } }
- *
- * Postman: PUT http://localhost:3000/api/drivers/status
- *   Body: { "driverUid": "...", "isOnline": true }
+ * Toggle driver online/offline.
+ * Body: { driverUid, isOnline, location: { lat, lng } }
  */
 const setStatusHandler = async (req, res) => {
   const { driverUid, isOnline, location } = req.body;
+  if (!driverUid) return error(res, 'driverUid is required.');
+  if (typeof isOnline !== 'boolean') return error(res, 'isOnline must be a boolean.');
 
-  if (!driverUid || typeof isOnline !== 'boolean') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'driverUid (string) and isOnline (boolean) are required.',
+  try {
+    const driver = await getDriverById(driverUid);
+    if (!driver) return error(res, 'Driver not found.', 404);
+    if (!driver.isApproved) return error(res, 'Driver is not approved. Contact admin.', 403);
+
+    await setOnlineStatus(driverUid, isOnline, location);
+
+    return success(res, {
+      driverId: driverUid,
+      isOnline,
+      isAvailable: isOnline, // going online sets available; offline removes
+      lastLocation: location || driver.lastLocation,
+      message: isOnline ? 'You are now online and accepting jobs.' : 'You are now offline.',
     });
-  }
-
-  try {
-    await setOnlineStatus(driverUid, isOnline, location || null);
-    return res.status(200).json({
-      status: 'success',
-      data: { driverUid, isOnline },
-    });
   } catch (err) {
-    console.error('Set driver status error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to update driver status.' });
-  }
-};
-
-// ─── GET /api/drivers/:id ────────────────────────────────────────────────────
-
-const getDriverHandler = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const driver = await getDriverById(id);
-    if (!driver) {
-      return res.status(404).json({ status: 'error', message: 'Driver not found.' });
-    }
-    return res.status(200).json({ status: 'success', data: driver });
-  } catch (err) {
-    console.error('Get driver error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to fetch driver.' });
-  }
-};
-
-// ─── GET /api/drivers ────────────────────────────────────────────────────────
-
-/**
- * Returns all drivers (admin panel).
- * Query: ?vehicleType=  — filters to matching drivers (Week 3 Task 5)
- */
-const getAllDriversHandler = async (req, res) => {
-  const { vehicleType } = req.query;
-  try {
-    let drivers;
-    if (vehicleType) {
-      drivers = await getMatchingDrivers(vehicleType);
-    } else {
-      drivers = await getAllDrivers();
-    }
-    return res.status(200).json({ status: 'success', data: drivers });
-  } catch (err) {
-    console.error('Get all drivers error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to fetch drivers.' });
+    console.error('Set status error:', err);
+    return error(res, 'Failed to update driver status.', 500);
   }
 };
 
 // ─── PUT /api/drivers/:id/approve ────────────────────────────────────────────
 
+/**
+ * Admin approves or revokes a driver.
+ * Body: { approve: true/false, adminNotes }
+ */
 const approveDriverHandler = async (req, res) => {
-  const { id } = req.params;
-  const { approve } = req.body; // true = approve, false = revoke
-
-  if (typeof approve !== 'boolean') {
-    return res.status(400).json({ status: 'error', message: 'approve (boolean) is required.' });
-  }
+  const { approve, adminNotes } = req.body;
+  if (typeof approve !== 'boolean') return error(res, 'approve must be a boolean (true/false).');
 
   try {
-    await setApprovalStatus(id, approve);
-    return res.status(200).json({
-      status: 'success',
-      data: { driverUid: id, isApproved: approve },
+    const driver = await getDriverById(req.params.id);
+    if (!driver) return error(res, 'Driver not found.', 404);
+
+    await setApprovalStatus(req.params.id, approve, adminNotes || null);
+
+    return success(res, {
+      driverId: req.params.id,
+      isApproved: approve,
+      message: approve ? 'Driver approved successfully.' : 'Driver approval revoked.',
     });
   } catch (err) {
     console.error('Approve driver error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to update approval status.' });
+    return error(res, 'Failed to update driver approval.', 500);
   }
 };
 
-// ─── POST /api/drivers ────────────────────────────────────────────────────────
+// ─── PUT /api/drivers/:id ─────────────────────────────────────────────────────
 
-const createDriverHandler = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Validation failed',
-      errors: errors.array().map((e) => ({ field: e.path, message: e.msg })),
-    });
+/**
+ * Update driver profile fields.
+ * Body: any updatable field (truckType, truckModel, phone, etc.)
+ */
+const updateDriverHandler = async (req, res) => {
+  const { truckType, serviceTypes, ...rest } = req.body;
+
+  if (truckType && !VALID_TRUCK_TYPES.includes(truckType)) {
+    return error(res, `Invalid truckType. Valid: ${VALID_TRUCK_TYPES.join(', ')}`);
   }
 
-  const { uid, name, email, phone, vehicleType, licenseNumber, experience } = req.body;
+  const updates = { ...rest };
+  if (truckType) updates.truckType = truckType;
+  if (serviceTypes) {
+    const invalid = serviceTypes.filter((t) => !VALID_SERVICE_TYPES.includes(t));
+    if (invalid.length > 0) {
+      return error(res, `Invalid serviceTypes: ${invalid.join(', ')}`);
+    }
+    updates.serviceTypes = serviceTypes;
+  }
+
+  // Remove protected fields
+  delete updates.isApproved;
+  delete updates.approvedAt;
+  delete updates.uid;
+  delete updates.createdAt;
+
   try {
-    const driver = await createDriver(uid, { name, email, phone, vehicleType, licenseNumber, experience });
-    return res.status(201).json({ status: 'success', data: driver });
+    const driver = await getDriverById(req.params.id);
+    if (!driver) return error(res, 'Driver not found.', 404);
+
+    await updateDriver(req.params.id, updates);
+    return success(res, { driverId: req.params.id, updated: updates });
   } catch (err) {
-    console.error('Create driver error:', err);
-    return res.status(500).json({ status: 'error', message: 'Failed to create driver profile.' });
+    console.error('Update driver error:', err);
+    return error(res, 'Failed to update driver.', 500);
   }
+};
+
+// ─── GET /api/drivers/truck-types ────────────────────────────────────────────
+
+/**
+ * Returns all valid truck types with labels.
+ * Used by registration form in the app.
+ */
+const getTruckTypesHandler = (req, res) => {
+  const truckTypeLabels = {
+    light_tow: 'Light Tow Truck (Motorcycles, ATVs — up to 500kg)',
+    standard_tow: 'Standard Tow Truck (Sedans, SUVs — up to 2500kg)',
+    heavy_tow: 'Heavy Tow Truck (4x4, Pickup trucks — up to 4000kg)',
+    flatbed_small: 'Small Flatbed Trailer (Skid Loaders — up to 5000kg)',
+    flatbed_heavy: 'Heavy Flatbed Trailer (JCB, Excavators — up to 15000kg)',
+    service_van: 'Service Van (Garage/Repair)',
+  };
+  return success(res, { truckTypes: truckTypeLabels, serviceTypes: VALID_SERVICE_TYPES });
 };
 
 module.exports = {
-  setStatusHandler,
-  getDriverHandler,
-  getAllDriversHandler,
-  approveDriverHandler,
   createDriverHandler,
+  getDriversHandler,
+  getDriverByIdHandler,
+  setStatusHandler,
+  approveDriverHandler,
+  updateDriverHandler,
+  getTruckTypesHandler,
 };

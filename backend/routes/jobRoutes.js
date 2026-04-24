@@ -1,74 +1,70 @@
-/**
- * Job Routes — Week 2 Task 2 + Week 3 Tasks 2, 6, 7, 8
- *
- * POST   /api/jobs                → create job
- * GET    /api/jobs                → get all jobs (or ?userId= / ?driverId=)
- * GET    /api/jobs/available      → available pending jobs (Week 3)
- * GET    /api/jobs/price-estimate → price estimate
- * GET    /api/jobs/:id            → get single job
- * PUT    /api/jobs/:id/accept     → driver accepts job (Week 3)
- * PUT    /api/jobs/:id/status     → update job status
- */
-
 const express = require('express');
-const { body } = require('express-validator');
+const { body, query } = require('express-validator');
+const router = express.Router();
 const {
   createJobHandler,
   getJobsHandler,
   getAvailableJobsHandler,
+  getPriceEstimateHandler,
+  getServiceInfoHandler,
   getJobByIdHandler,
+  matchDriversHandler,
   acceptJobHandler,
   updateStatusHandler,
-  getPriceEstimate,
+  cancelJobHandler,
+  rateDriverHandler,
 } = require('../controllers/jobController');
 
-const router = express.Router();
+// ─── Validation Rules ─────────────────────────────────────────────────────────
 
-// GET /api/jobs/available  — must be BEFORE /:id route
-router.get('/available', getAvailableJobsHandler);
+const createJobValidation = [
+  body('userId').notEmpty().withMessage('userId is required'),
+  body('pickup').notEmpty().withMessage('pickup location is required'),
+  body('drop').notEmpty().withMessage('drop location is required'),
+  body('distanceKm')
+    .optional()
+    .isFloat({ min: 0.1 })
+    .withMessage('distanceKm must be a positive number'),
+  body('vehicleType')
+    .optional()
+    .isString()
+    .withMessage('vehicleType must be a string'),
+  body('serviceType')
+    .optional()
+    .isIn(['tow', 'garage', 'heavy_equipment', 'quote_industrial'])
+    .withMessage('serviceType must be: tow | garage | heavy_equipment | quote_industrial'),
+];
 
-// GET /api/jobs/price-estimate
-router.get('/price-estimate', getPriceEstimate);
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
-// POST /api/jobs
-router.post(
-  '/',
-  [
-    body('userId').notEmpty().withMessage('userId is required'),
-    body('serviceType')
-      .notEmpty()
-      .isIn(['tow', 'repair', 'heavy', 'quote'])
-      .withMessage('serviceType must be tow, repair, heavy, or quote'),
-    body('vehicleType').notEmpty().withMessage('vehicleType is required'),
-    body('pickup').notEmpty().withMessage('pickup location is required'),
-    body('drop').notEmpty().withMessage('drop location is required'),
-    body('distanceKm')
-      .optional()
-      .isNumeric()
-      .withMessage('distanceKm must be a number'),
-  ],
-  createJobHandler
-);
+// IMPORTANT: specific paths BEFORE parameterized paths (:id)
 
-// GET /api/jobs  (also handles ?userId= and ?driverId=)
-router.get('/', getJobsHandler);
+// Catalog / Info endpoints
+router.get('/service-info', getServiceInfoHandler);           // All service types + pricing
+router.get('/price-estimate', getPriceEstimateHandler);      // GET /api/jobs/price-estimate?vehicleType=&distanceKm=
+router.get('/available', getAvailableJobsHandler);           // GET /api/jobs/available?truckType=&serviceType=
 
-// GET /api/jobs/:id
-router.get('/:id', getJobByIdHandler);
+// CRUD
+router.post('/', createJobValidation, createJobHandler);     // POST  /api/jobs
+router.get('/', getJobsHandler);                             // GET   /api/jobs?userId=|driverId=|status=
 
-// PUT /api/jobs/:id/accept
-router.put('/:id/accept', acceptJobHandler);
+// Job by ID
+router.get('/:id', getJobByIdHandler);                       // GET   /api/jobs/:id
+router.get('/:id/match', matchDriversHandler);               // GET   /api/jobs/:id/match (list matching drivers)
 
-// PUT /api/jobs/:id/status
-router.put(
-  '/:id/status',
-  [
-    body('status')
-      .notEmpty()
-      .isIn(['pending', 'accepted', 'in_progress', 'at_garage', 'completed', 'cancelled'])
-      .withMessage('Invalid status value'),
-  ],
-  updateStatusHandler
-);
+// Job actions
+router.put('/:id/accept', [
+  body('driverId').notEmpty().withMessage('driverId is required'),
+], acceptJobHandler);
+
+router.put('/:id/status', [
+  body('status').notEmpty().withMessage('status is required'),
+], updateStatusHandler);
+
+router.put('/:id/rate-driver', [
+  body('rating').isFloat({ min: 1, max: 5 }).withMessage('rating must be 1–5'),
+], rateDriverHandler);
+
+router.delete('/:id/cancel', cancelJobHandler);              // DELETE /api/jobs/:id/cancel
 
 module.exports = router;
