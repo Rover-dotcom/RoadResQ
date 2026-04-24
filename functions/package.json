@@ -1,7 +1,7 @@
 {
   "name": "roadresq-functions",
   "version": "1.0.0",
-  "description": "RoadResQ Firebase Cloud Functions — wraps the Express backend",
+  "description": "RoadResQ Firebase Cloud Functions — RoadResQ Backend API",
   "engines": {
     "node": "22"
   },
@@ -17,11 +17,8 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-validator": "^7.0.1",
-    "firebase-admin": "^12.0.0",
-    "firebase-functions": "^7.2.5",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.3.2",
     "uuid": "^9.0.0"
-  },
-  "devDependencies": {
-    "firebase-functions-test": "^3.1.0"
   }
 }

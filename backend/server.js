@@ -88,11 +88,11 @@ app.use((err, _req, res, _next) => {
 
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`\n🚗 RoadResQ API running on http://localhost:${PORT}`);
-    console.log(`   Health check: http://localhost:${PORT}/`);
-    console.log(`   Jobs:         http://localhost:${PORT}/api/jobs`);
-    console.log(`   Service info: http://localhost:${PORT}/api/jobs/service-info\n`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚗 RoadResQ API running on http://0.0.0.0:${PORT}`);
+    console.log(`   Health check: http://0.0.0.0:${PORT}/`);
+    console.log(`   Jobs:         http://0.0.0.0:${PORT}/api/jobs`);
+    console.log(`   Service info: http://0.0.0.0:${PORT}/api/jobs/service-info\n`);
   });
 }
 
