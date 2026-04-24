@@ -1,47 +1,47 @@
-/**
- * Driver Routes — Week 3 Tasks 5, 10
- *
- * POST  /api/drivers            → create driver profile
- * GET   /api/drivers            → get all drivers (admin) or ?vehicleType= filter
- * GET   /api/drivers/:id        → get driver by UID
- * PUT   /api/drivers/status     → set online/offline
- * PUT   /api/drivers/:id/approve → admin approve/revoke
- */
-
 const express = require('express');
 const { body } = require('express-validator');
+const router = express.Router();
 const {
-  setStatusHandler,
-  getDriverHandler,
-  getAllDriversHandler,
-  approveDriverHandler,
   createDriverHandler,
+  getDriversHandler,
+  getDriverByIdHandler,
+  setStatusHandler,
+  approveDriverHandler,
+  updateDriverHandler,
+  getTruckTypesHandler,
 } = require('../controllers/driverController');
 
-const router = express.Router();
+// ─── Validation Rules ─────────────────────────────────────────────────────────
 
-// PUT /api/drivers/status  — must be BEFORE /:id
-router.put('/status', setStatusHandler);
+const createDriverValidation = [
+  body('uid').notEmpty().withMessage('uid (Firebase UID) is required'),
+  body('name').notEmpty().withMessage('name is required'),
+  body('email').isEmail().withMessage('valid email is required'),
+  body('phone').notEmpty().withMessage('phone is required'),
+  body('truckType')
+    .notEmpty()
+    .withMessage('truckType is required')
+    .isIn(['light_tow', 'standard_tow', 'heavy_tow', 'flatbed_small', 'flatbed_heavy', 'service_van'])
+    .withMessage('truckType must be: light_tow | standard_tow | heavy_tow | flatbed_small | flatbed_heavy | service_van'),
+];
 
-// POST /api/drivers
-router.post(
-  '/',
-  [
-    body('uid').notEmpty().withMessage('uid is required'),
-    body('name').notEmpty().withMessage('name is required'),
-    body('vehicleType').notEmpty().withMessage('vehicleType is required'),
-    body('licenseNumber').notEmpty().withMessage('licenseNumber is required'),
-  ],
-  createDriverHandler
-);
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
-// GET /api/drivers
-router.get('/', getAllDriversHandler);
+router.get('/truck-types', getTruckTypesHandler);          // GET /api/drivers/truck-types
 
-// GET /api/drivers/:id
-router.get('/:id', getDriverHandler);
+router.post('/', createDriverValidation, createDriverHandler);  // POST /api/drivers
+router.get('/', getDriversHandler);                             // GET  /api/drivers?truckType=&isOnline=&isApproved=
 
-// PUT /api/drivers/:id/approve
-router.put('/:id/approve', approveDriverHandler);
+router.put('/status', [
+  body('driverUid').notEmpty().withMessage('driverUid is required'),
+  body('isOnline').isBoolean().withMessage('isOnline must be true or false'),
+], setStatusHandler);
+
+router.get('/:id', getDriverByIdHandler);                  // GET /api/drivers/:id
+router.put('/:id/approve', [
+  body('approve').isBoolean().withMessage('approve must be true or false'),
+], approveDriverHandler);
+
+router.put('/:id', updateDriverHandler);                   // PUT /api/drivers/:id
 
 module.exports = router;

@@ -27,3 +27,13 @@ ReferenceFilesPrompt/
 backend/.env
 backend/config/serviceAccountKey.json
 backend/node_modules/
+
+# Firebase Functions
+functions/node_modules/
+
+# Firebase debug logs
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+firestore-debug.log
+ui-debug.log
