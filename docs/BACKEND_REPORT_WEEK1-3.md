@@ -37,7 +37,7 @@
 
 ---
 
-## ✅ WEEK 3 TASK VERIFICATION — All Complete + EXCEEDED
+## ✅ WEEK 3
 
 | Task | Requirement | Status | File |
 |---|---|---|---|
@@ -97,8 +97,7 @@ backend-dev branch → /backend/
 
 ---
 
-## 🧠 TECHNICAL LOGIC EXPLANATIONS
-
+## 🧠 TECHNICAL LOGIC
 ### 1. Category Engine — How Vehicle Types Are Classified
 
 **File:** `backend/utils/categoryEngine.js` + `serviceEngine.js`
@@ -131,34 +130,34 @@ Container     → "quote_industrial" → QUOTE REQUIRED
 **File:** `backend/utils/pricingEngine.js`
 
 ```
-FORMULA:
-  Total Price = Base Fare + (Distance in KM × Per KM Rate)
+FORMULA (Qatar Riyal — stored as integer halala, divide by 100 to display):
+  Total = Base Fare (halala) + (Distance in KM × Per KM Rate in halala)
 
 EXAMPLE — Sedan, 10km:
-  Base Fare    = ₱250
-  Distance     = 10km × ₱5/km = ₱50
-  TOTAL        = ₱300  ✅
+  Base Fare    = 25000 halala (QR 250.00)
+  Distance     = 10km × 500 halala/km = 5000 halala (QR 50.00)
+  TOTAL        = 30000 halala (QR 300.00)  ✅
 
 EXAMPLE — SUV, 15km:
-  Base Fare    = ₱300
-  Distance     = 15km × ₱6/km = ₱90
-  TOTAL        = ₱390
+  Base Fare    = 30000 halala (QR 300.00)
+  Distance     = 15km × 600 halala/km = 9000 halala (QR 90.00)
+  TOTAL        = 39000 halala (QR 390.00)
 ```
 
 **Full Price Table:**
 
 | Vehicle | Base Fare | Per KM | Example (10km) |
 |---|---|---|---|
-| Motorcycle | ₱150 | ₱3/km | ₱180 |
-| ATV | ₱180 | ₱4/km | ₱220 |
-| Sedan | ₱250 | ₱5/km | ₱300 |
-| SUV | ₱300 | ₱6/km | ₱360 |
-| 4x4 | ₱380 | ₱8/km | ₱460 |
-| Garage Urgent | ₱300 | ₱5/km | ₱350 |
-| Skid Loader | ₱800 | ₱12/km | ₱920 |
-| Telehandler | ₱1,200 | ₱16/km | ₱1,360 |
-| JCB | ₱1,500 | ₱18/km | ₱1,680 |
-| Excavator | ₱2,000 | ₱22/km | ₱2,220 |
+| Motorcycle | QR 150 | QR 3/km | QR 180 |
+| ATV | QR 180 | QR 4/km | QR 220 |
+| Sedan | QR 250 | QR 5/km | QR 300 |
+| SUV | QR 300 | QR 6/km | QR 360 |
+| 4x4 | QR 380 | QR 8/km | QR 460 |
+| Garage Urgent | QR 300 | QR 5/km | QR 350 |
+| Skid Loader | QR 800 | QR 12/km | QR 920 |
+| Telehandler | QR 1,200 | QR 16/km | QR 1,360 |
+| JCB | QR 1,500 | QR 18/km | QR 1,680 |
+| Excavator | QR 2,000 | QR 22/km | QR 2,220 |
 
 **Quote Required (no auto-price):**  
 Container, Generator, Precast Block, Pallets, Industrial Others, Garage Standard, Heavy Others

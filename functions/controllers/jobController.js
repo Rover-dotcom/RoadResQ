@@ -27,7 +27,7 @@ const {
   cancelJob,
 } = require('../models/jobModel');
 const { getDriverById, updateDriverRating } = require('../models/driverModel');
-const { getVehicleSpec, getServiceCategory, requiresQuote, ALL_VEHICLE_TYPES, SERVICE_TYPES, TRUCK_TYPES } = require('../utils/serviceEngine');
+const { getVehicleSpec, getServiceCategory, requiresQuote, ALL_VEHICLE_TYPES, SERVICE_TYPES, TRUCK_TYPES, deriveJobConstraints } = require('../utils/serviceEngine');
 const { getPriceEstimate } = require('../utils/pricingEngine');
 const { findMatchingDrivers, autoAssignDriver, checkDriverJobCompatibility } = require('../utils/matchingEngine');
 
@@ -64,6 +64,15 @@ const createJobHandler = async (req, res) => {
     vehicleCondition, loadDescription, garageUrgency,
     repairDescription, customerNotes, garageId,
     pickupCoords, dropCoords,
+    // Week 4: Others support
+    customItem, customDetails, customPhotoUrls,
+    // Week 4: Logistics builder
+    dimensions, weightKg, loadingType, pickupAccessibility,
+    isFragile, specialNotes, logisticsPhotoUrls,
+    // Week 4: Basement / restricted access
+    isRestrictedArea, clearanceHeightMm,
+    // Week 4: Equipment + gate pass
+    equipmentType, requiresGatePass, isSpecialLoad,
   } = req.body;
 
   // Validate vehicle type if provided
@@ -81,25 +90,54 @@ const createJobHandler = async (req, res) => {
       vehicleCondition, loadDescription, garageUrgency,
       repairDescription, customerNotes, garageId,
       pickupCoords, dropCoords,
+      // Week 4 fields
+      customItem, customDetails, customPhotoUrls,
+      dimensions, weightKg, loadingType, pickupAccessibility,
+      isFragile, specialNotes, logisticsPhotoUrls,
+      isRestrictedArea, clearanceHeightMm,
+      equipmentType, requiresGatePass, isSpecialLoad,
     });
 
-    // Try auto-assign for non-quote jobs with pending status
+    // ── Auto-assign: derive all constraints from vehicleType automatically
     let assignedDriver = null;
     if (job.status === 'pending' && !job.requiresQuote) {
       try {
-        assignedDriver = await autoAssignDriver(job.id, {
-          vehicleType: job.vehicleType,
-          serviceType: job.serviceType,
-          requiredTruckType: job.requiredTruckType,
-          minTruckCapacityKg: job.minTruckCapacityKg || 0,
+        // deriveJobConstraints auto-figures out truck type, equipment, capacity,
+        // isSpecialLoad — customer fields override only what they explicitly set
+        const matchConstraints = deriveJobConstraints(job.vehicleType, {
+          pickupCoords: job.pickupCoords,
+          isRestrictedArea: job.isRestrictedArea || false,
+          clearanceHeightMm: job.clearanceHeightMm || null,
+          requiresGatePass: job.requiresGatePass || false,
+          // equipmentType from body is an extra override (e.g. customer specifies boom_truck)
+          ...(job.equipmentType ? { requiredEquipmentTypes: [job.equipmentType] } : {}),
         });
+
+        assignedDriver = await autoAssignDriver(job.id, matchConstraints);
       } catch (matchErr) {
-        // Auto-assign failure is non-fatal — job stays pending, driver can pick it up manually
         console.warn('Auto-assign skipped:', matchErr.message);
       }
     }
 
-    return success(res, { job, assignedDriver: assignedDriver ? { id: assignedDriver.id, name: assignedDriver.name, truckType: assignedDriver.truckType } : null }, 201);
+    // Build a clear response: tell the customer what truck + equipment is coming
+    const driverSummary = assignedDriver
+      ? {
+          id: assignedDriver.id,
+          name: assignedDriver.name,
+          truckType: assignedDriver.truckType,
+          vehicleModel: assignedDriver.vehicleModel || null,
+          equipmentTypes: assignedDriver.equipmentTypes || [],
+          maxCapacityKg: assignedDriver.maxCapacityKg || null,
+          rating: assignedDriver.rating || null,
+          yearsExperience: assignedDriver.yearsExperience || null,
+          estimatedETA: assignedDriver._eta || null,
+          distanceKm: assignedDriver._distanceKm
+            ? Math.round(assignedDriver._distanceKm * 10) / 10
+            : null,
+        }
+      : null;
+
+    return success(res, { job, assignedDriver: driverSummary }, 201);
   } catch (err) {
     console.error('Create job error:', err);
     return error(res, 'Failed to create job.', 500);
@@ -228,25 +266,39 @@ const matchDriversHandler = async (req, res) => {
     const job = await getJobById(req.params.id);
     if (!job) return error(res, 'Job not found.', 404);
 
-    const drivers = await findMatchingDrivers({
-      vehicleType: job.vehicleType,
-      serviceType: job.serviceType,
-      requiredTruckType: job.requiredTruckType,
-      minTruckCapacityKg: job.minTruckCapacityKg || 0,
+    // Derive all constraints from vehicleType automatically
+    const constraints = deriveJobConstraints(job.vehicleType, {
+      pickupCoords: job.pickupCoords,
+      isRestrictedArea: job.isRestrictedArea,
+      clearanceHeightMm: job.clearanceHeightMm,
+      requiresGatePass: job.requiresGatePass,
+      ...(job.equipmentType ? { requiredEquipmentTypes: [job.equipmentType] } : {}),
     });
+
+    const drivers = await findMatchingDrivers(constraints);
 
     return success(res, {
       jobId: job.id,
-      requiredTruckType: job.requiredTruckType,
+      vehicleType: job.vehicleType,
+      vehicleLabel: constraints.vehicleLabel,
+      requiredTruckType: constraints.requiredTruckType,
+      requiredEquipmentTypes: constraints.requiredEquipmentTypes,
+      isSpecialLoad: constraints.isSpecialLoad,
       matchedDrivers: drivers.map((d) => ({
         id: d.id,
         name: d.name,
         truckType: d.truckType,
-        truckModel: d.truckModel,
+        vehicleModel: d.vehicleModel || null,
+        equipmentTypes: d.equipmentTypes || [],
         maxCapacityKg: d.maxCapacityKg,
+        vehicleHeightMm: d.vehicleHeightMm || null,
+        hasGatePass: d.hasGatePass || false,
         rating: d.rating,
-        completedJobs: d.completedJobs,
-        lastLocation: d.lastLocation,
+        yearsExperience: d.yearsExperience || 0,
+        completedJobs: d.completedJobs || 0,
+        estimatedETA: d._eta,
+        distanceKm: d._distanceKm ? Math.round(d._distanceKm * 10) / 10 : null,
+        matchedOn: d._matchedOn,
       })),
       count: drivers.length,
     });

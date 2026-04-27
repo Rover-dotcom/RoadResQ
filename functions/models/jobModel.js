@@ -28,7 +28,7 @@ function buildJobDocument(data) {
 
   // Determine category and truck requirements
   const serviceType = data.serviceType || (spec ? spec.serviceType : 'quote_industrial');
-  const requiredTruckType = spec ? spec.requiredTruckType : 'quote_required';
+  let requiredTruckType = spec ? spec.requiredTruckType : 'quote_required';
   const estimatedWeightKg = spec ? spec.estimatedWeightKg : null;
   const minTruckCapacityKg = spec ? spec.minTruckCapacityKg : null;
   const requiresQuote = spec ? spec.requiresQuote : true;
@@ -84,6 +84,33 @@ function buildJobDocument(data) {
     vehicleCondition: data.vehicleCondition || null, // 'running' | 'non_running'
     loadDescription: data.loadDescription || null,   // for heavy/industrial
 
+    // ─── Week 4: "Others" Custom Item Support ─────────────────
+    // When vehicleType = 'Others', user fills these custom fields
+    customItem: data.customItem || null,       // "What is it?" — short label
+    customDetails: data.customDetails || null, // multiline description
+    customPhotoUrls: data.customPhotoUrls || [],
+    // Fallback: if customItem provided, admin reviews OR broader matching applied
+
+    // ─── Week 4: Logistics Builder ────────────────────────────
+    // Used in Heavy Equipment + Quote Industrial jobs
+    dimensions: data.dimensions || null,       // { lengthM, widthM, heightM }
+    weightKg: data.weightKg ? parseFloat(data.weightKg) : null,
+    loadingType: data.loadingType || null,     // 'boom_truck' | 'flatbed' | 'precast_trailer'
+    pickupAccessibility: data.pickupAccessibility || 'easy', // 'easy' | 'restricted'
+    isFragile: data.isFragile || false,
+    specialNotes: data.specialNotes || null,
+    logisticsPhotoUrls: data.logisticsPhotoUrls || [],
+
+    // ─── Week 4: Basement / Restricted Access ─────────────────
+    isRestrictedArea: data.isRestrictedArea || false,
+    clearanceHeightMm: data.clearanceHeightMm ? parseInt(data.clearanceHeightMm) : null,
+    // e.g. underground parking with 2100mm max height
+
+    // ─── Week 4: Equipment + Gate Pass Requirements ────────────
+    equipmentType: data.equipmentType || null, // 'boom_truck' | 'flatbed' | 'flatbed_tow'
+    requiresGatePass: data.requiresGatePass || false,
+    isSpecialLoad: data.isSpecialLoad || false, // heavy/industrial → expert-only drivers
+
     // ─── Location ──────────────────────────────────────────────
     pickup: data.pickup,
     drop: data.drop,
@@ -95,11 +122,12 @@ function buildJobDocument(data) {
     garageUrgency: garageLevel,               // 'urgent' | 'standard'
     repairDescription: data.repairDescription || null,
 
-    // ─── Pricing ───────────────────────────────────────────────
-    price,
+    // ─── Pricing (Week 4: integer halala — 5000 = QR 50.00) ───
+    price,                                    // integer halala
+    priceDisplay: price ? `QR ${(price / 100).toFixed(2)}` : null,
     pricingBreakdown,
     requiresQuote: requiresQuote || data.requiresQuote || false,
-    quotedPrice: null,                        // set by admin for quote jobs
+    quotedPrice: null,                        // halala — set by admin/driver for quote jobs
     quotedAt: null,
 
     // ─── Status ────────────────────────────────────────────────
@@ -110,6 +138,8 @@ function buildJobDocument(data) {
     // ─── Matching ──────────────────────────────────────────────
     matchedTruckType: null,                   // actual truck type used
     autoAssigned: false,
+    driverDistanceKm: null,                   // distance from driver to pickup at time of assign
+    estimatedETA: null,                       // { etaMinutes, isPeakHour, trafficBufferApplied }
 
     // ─── Timestamps ────────────────────────────────────────────
     createdAt: new Date().toISOString(),

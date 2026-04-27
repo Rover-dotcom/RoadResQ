@@ -1,0 +1,535 @@
+{
+  "info": {
+    "name": "RoadResQ API — v3.0.0 (Week 4)",
+    "description": "Complete API collection for RoadResQ backend.\n\nBase URL: https://api-h6acdw3itq-ww.a.run.app\n\nSet environment variable:\n  baseUrl = https://api-h6acdw3itq-ww.a.run.app\n\nAll prices are in INTEGER HALALA:\n  5000 halala = QR 50.00\n  Divide by 100 for display.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api-h6acdw3itq-ww.a.run.app" }
+  ],
+  "item": [
+
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/",
+            "description": "Returns API version, region, and all available endpoints."
+          }
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed Al-Mansoori\",\n  \"email\": \"ahmed@example.com\",\n  \"password\": \"securePass123\",\n  \"phone\": \"+97455512345\",\n  \"role\": \"customer\"\n}"
+            },
+            "description": "Roles: customer | driver | admin | garage"
+          }
+        },
+        {
+          "name": "Login (Firebase ID Token)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"FIREBASE_ID_TOKEN_HERE\"\n}"
+            },
+            "description": "Pass the Firebase ID token obtained from client-side signInWithEmailAndPassword()."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🚗 Jobs",
+      "item": [
+        {
+          "name": "Get Service Info (All types + pricing)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/service-info",
+            "description": "Returns full catalogue: all vehicle types, service categories, pricing keys, required truck types. Call this on app startup to populate dropdown menus."
+          }
+        },
+        {
+          "name": "Get Price Estimate",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/price-estimate?vehicleType=sedan&distanceKm=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "price-estimate"],
+              "query": [
+                { "key": "vehicleType", "value": "sedan" },
+                { "key": "distanceKm", "value": "8" }
+              ]
+            },
+            "description": "Returns price in halala + QR display string.\nvehicleType options: motorcycle | atv | sedan | suv | 4x4 | skid_loader | telehandler | jcb | excavator"
+          }
+        },
+        {
+          "name": "Create Job — Standard Tow (Sedan)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_abc123\",\n  \"vehicleType\": \"sedan\",\n  \"pickup\": \"West Bay, Doha\",\n  \"drop\": \"The Pearl, Doha\",\n  \"distanceKm\": 8,\n  \"vehicleModel\": \"Toyota Camry 2022\",\n  \"vehiclePlate\": \"A 12345\",\n  \"vehicleColor\": \"White\",\n  \"vehicleCondition\": \"Engine failure, car is in neutral\",\n  \"customerNotes\": \"Keys are in the glove box\",\n  \"pickupCoords\": { \"lat\": 25.3388, \"lng\": 51.5074 },\n  \"dropCoords\": { \"lat\": 25.3699, \"lng\": 51.5244 }\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Job — Basement/Restricted (SUV)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_abc123\",\n  \"vehicleType\": \"suv\",\n  \"pickup\": \"West Bay Mall Basement P2\",\n  \"drop\": \"The Pearl Tower A\",\n  \"distanceKm\": 12,\n  \"vehicleModel\": \"Nissan Patrol 2023\",\n  \"vehiclePlate\": \"B 99988\",\n  \"pickupCoords\": { \"lat\": 25.3388, \"lng\": 51.5074 },\n  \"dropCoords\": { \"lat\": 25.3699, \"lng\": 51.5244 },\n  \"isRestrictedArea\": true,\n  \"clearanceHeightMm\": 2100\n}"
+            },
+            "description": "Week 4: clearanceHeightMm filters out trucks taller than 2100mm. Only low-clearance trucks will be matched."
+          }
+        },
+        {
+          "name": "Create Job — Special Load (Excavator, Gate Pass)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_abc123\",\n  \"vehicleType\": \"excavator\",\n  \"pickup\": \"Lusail Construction Site\",\n  \"drop\": \"Dukhan Highway Depot\",\n  \"distanceKm\": 35,\n  \"loadDescription\": \"Caterpillar 320D Excavator, 18 tons\",\n  \"pickupCoords\": { \"lat\": 25.4206, \"lng\": 51.4895 },\n  \"dropCoords\": { \"lat\": 25.1580, \"lng\": 50.8113 },\n  \"equipmentType\": \"flatbed\",\n  \"requiresGatePass\": true,\n  \"isSpecialLoad\": true,\n  \"dimensions\": { \"lengthCm\": 950, \"widthCm\": 320, \"heightCm\": 310 },\n  \"weightKg\": 18000\n}"
+            },
+            "description": "Week 4: requiresGatePass=true filters to only drivers with hasGatePass=true. isSpecialLoad=true routes to expert drivers (yearsExperience >= 2 or isExpert=true)."
+          }
+        },
+        {
+          "name": "Create Job — Others (Custom/Unknown Vehicle)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_abc123\",\n  \"vehicleType\": \"Others\",\n  \"pickup\": \"Al Sadd, Doha\",\n  \"drop\": \"Repair Garage, Industrial Area\",\n  \"distanceKm\": 5,\n  \"customItem\": \"Electric Mobility Scooter\",\n  \"customDetails\": \"Elderly resident's scooter, non-running, approx 80kg, folds flat\",\n  \"customPhotoUrls\": [\"https://storage.googleapis.com/roadresq/photos/scooter001.jpg\"],\n  \"pickupCoords\": { \"lat\": 25.2667, \"lng\": 51.5232 }\n}"
+            },
+            "description": "Week 4: 'Others' sets requiresQuote=true automatically. Status becomes quote_pending."
+          }
+        },
+        {
+          "name": "Get All Jobs (filter by userId)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs?userId=user_abc123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs"],
+              "query": [{ "key": "userId", "value": "user_abc123" }]
+            },
+            "description": "Filters: userId | driverId | status"
+          }
+        },
+        {
+          "name": "Get Available Jobs (for driver)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/available?truckType=standard_tow",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "available"],
+              "query": [{ "key": "truckType", "value": "standard_tow" }]
+            }
+          }
+        },
+        {
+          "name": "Get Job by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/JOB_ID_HERE"
+          }
+        },
+        {
+          "name": "Get Matching Drivers for Job",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/JOB_ID_HERE/match",
+            "description": "Week 4: Returns ranked list of matching drivers after all 10 filters (geo, height, gate-pass, equipment, compliance, etc.)"
+          }
+        },
+        {
+          "name": "Driver Accepts Job",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/jobs/JOB_ID_HERE/accept",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"driver_xyz456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Job Status",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/jobs/JOB_ID_HERE/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "description": "Valid statuses: pending | assigned | accepted | in_progress | at_garage | on_site | completed | cancelled | quote_pending | quoted"
+          }
+        },
+        {
+          "name": "Rate Driver (after completion)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/jobs/JOB_ID_HERE/rate-driver",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4.5\n}"
+            },
+            "description": "Rating 1–5 (float). Updates driver's average rating automatically."
+          }
+        },
+        {
+          "name": "Cancel Job",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/JOB_ID_HERE/cancel"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🚛 Drivers",
+      "item": [
+        {
+          "name": "Get Truck Types (reference)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/truck-types",
+            "description": "Returns all valid truckType values. Use this to populate driver registration dropdowns."
+          }
+        },
+        {
+          "name": "Register Driver (Week 4 fields)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/drivers",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"firebase_driver_uid_here\",\n  \"name\": \"Mohammed Al-Rashidi\",\n  \"email\": \"driver@example.com\",\n  \"phone\": \"+97455599999\",\n  \"truckType\": \"standard_tow\",\n  \"maxCapacityKg\": 3500,\n  \"licensePlate\": \"D 77712\",\n  \"vehicleModel\": \"Toyota Land Cruiser Flatbed 2021\",\n\n  \"vehicleHeightMm\": 1950,\n  \"equipmentTypes\": [\"flatbed_tow\"],\n  \"yearsExperience\": 5,\n  \"hasGatePass\": false,\n  \"isExpert\": false,\n\n  \"licenseExpiry\": \"2026-12-31\",\n  \"insuranceExpiry\": \"2026-09-30\",\n  \"visaExpiry\": \"2027-03-15\",\n  \"roadworthinessExpiry\": \"2026-11-01\",\n\n  \"serviceTypes\": [\"tow\", \"garage\"]\n}"
+            },
+            "description": "Week 4 NEW fields:\n- vehicleHeightMm: truck height in mm (for basement/clearance checks)\n- equipmentTypes: array — boom_truck | flatbed | flatbed_tow\n- yearsExperience: for expert routing\n- hasGatePass: true if driver has site gate access\n- isExpert: override flag\n- licenseExpiry / insuranceExpiry / visaExpiry / roadworthinessExpiry: ISO date strings"
+          }
+        },
+        {
+          "name": "Get All Drivers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/drivers?isOnline=true&isApproved=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drivers"],
+              "query": [
+                { "key": "isOnline", "value": "true" },
+                { "key": "isApproved", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Driver by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/DRIVER_ID_HERE"
+          }
+        },
+        {
+          "name": "Set Driver Online/Offline Status",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/drivers/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverUid\": \"firebase_driver_uid_here\",\n  \"isOnline\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Approve Driver (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/drivers/DRIVER_ID_HERE/approve",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approve\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Driver Profile (Week 4 fields)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/drivers/DRIVER_ID_HERE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleHeightMm\": 2050,\n  \"equipmentTypes\": [\"boom_truck\", \"flatbed\"],\n  \"yearsExperience\": 8,\n  \"hasGatePass\": true,\n  \"isExpert\": true,\n  \"licenseExpiry\": \"2027-06-30\",\n  \"insuranceExpiry\": \"2027-01-15\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📋 Quotes",
+      "item": [
+        {
+          "name": "Submit Quote Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/quotes",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_abc123\",\n  \"pickup\": \"Mesaieed Industrial City, Gate 3\",\n  \"drop\": \"Ras Laffan Industrial City\",\n  \"itemDescription\": \"Industrial centrifugal pump, 2.5 tons, fragile flanges\",\n  \"serviceType\": \"quote_industrial\",\n  \"urgency\": \"medium\",\n  \"estimatedWeight\": 2500,\n  \"customerNotes\": \"Requires specialist rigging. Flanges must not be damaged.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Quotes (filter by userId)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes?userId=user_abc123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quotes"],
+              "query": [{ "key": "userId", "value": "user_abc123" }]
+            }
+          }
+        },
+        {
+          "name": "Get Quote by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/quotes/QUOTE_ID_HERE"
+          }
+        },
+        {
+          "name": "Admin Responds with Price",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/quotes/QUOTE_ID_HERE/respond",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quotedPrice\": 4500.00,\n  \"adminNotes\": \"Specialist flatbed + 2 riggers. Price includes all equipment.\",\n  \"estimatedDuration\": \"4 hours\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Customer Accepts Quote",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/quotes/QUOTE_ID_HERE/accept"
+          }
+        },
+        {
+          "name": "Customer Rejects Quote",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/quotes/QUOTE_ID_HERE/reject"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🔧 Garage Requests (Week 4 — On-Site Repair)",
+      "item": [
+        {
+          "name": "Create On-Site Repair Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/garage-requests",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_abc123\",\n  \"location\": { \"lat\": 25.2854, \"lng\": 51.5310 },\n  \"locationLabel\": \"Al Mirqab Street, near City Center Doha\",\n  \"vehicleType\": \"sedan\",\n  \"vehicleModel\": \"Honda Civic 2021\",\n  \"vehiclePlate\": \"A 55432\",\n  \"issue\": \"Car won't start. Battery or alternator suspected.\",\n  \"urgency\": \"high\",\n  \"photoUrls\": []\n}"
+            },
+            "description": "Week 4: Broadcasts to all garages within 10km. Status becomes collecting_estimates. Auto-cancels after 15 minutes if no garage responds."
+          }
+        },
+        {
+          "name": "Get Garage Requests (filter by userId)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/garage-requests?userId=user_abc123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garage-requests"],
+              "query": [{ "key": "userId", "value": "user_abc123" }]
+            },
+            "description": "Filters: userId | garageId | status"
+          }
+        },
+        {
+          "name": "Get Garage Request by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/garage-requests/REQUEST_ID_HERE"
+          }
+        },
+        {
+          "name": "Garage Submits Estimate (Bid)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/garage-requests/REQUEST_ID_HERE/estimate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"garageId\": \"garage_xyz789\",\n  \"garageName\": \"Al-Noor Auto Service\",\n  \"price\": 12000,\n  \"eta\": 15,\n  \"notes\": \"We'll replace the battery and test the alternator. Price includes parts.\"\n}"
+            },
+            "description": "price is in integer halala. 12000 = QR 120.00\neta is in minutes."
+          }
+        },
+        {
+          "name": "View All Estimates for a Request",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/garage-requests/REQUEST_ID_HERE/estimates",
+            "description": "Returns sorted list: cheapest price first. Each estimate flagged with isBestPrice and isFastestArrival."
+          }
+        },
+        {
+          "name": "Customer Accepts an Estimate",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/garage-requests/REQUEST_ID_HERE/accept",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estimateId\": \"ESTIMATE_ID_FROM_ESTIMATES_LIST\"\n}"
+            },
+            "description": "First-accept-wins. Status changes to accepted. assignedGarageId is set."
+          }
+        },
+        {
+          "name": "Update Garage Request Status",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/garage-requests/REQUEST_ID_HERE/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "description": "Valid statuses: pending | collecting_estimates | accepted | on_the_way | in_progress | completed | cancelled"
+          }
+        },
+        {
+          "name": "Trigger Auto-Cancel Check (15 min)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/garage-requests/REQUEST_ID_HERE/auto-cancel",
+            "description": "Call this 15 minutes after creation if no estimate was accepted. Cancels if still in collecting_estimates state."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "⚠️ Discipline (Week 4 — Admin/System)",
+      "item": [
+        {
+          "name": "Record Driver Late",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/discipline/driver-late",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"DRIVER_ID_HERE\",\n  \"jobId\": \"JOB_ID_HERE\"\n}"
+            },
+            "description": "Adds +1 warning. If warnings >= 3, driver is auto-suspended."
+          }
+        },
+        {
+          "name": "Record Driver No-Show",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/discipline/driver-noshow",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"DRIVER_ID_HERE\",\n  \"jobId\": \"JOB_ID_HERE\"\n}"
+            },
+            "description": "Adds +1 warning + re-opens job for reassignment. Auto-suspend at 3 warnings."
+          }
+        },
+        {
+          "name": "Charge Customer No-Show (QR 50.00)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/discipline/customer-noshow",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID_HERE\",\n  \"driverId\": \"DRIVER_ID_HERE\"\n}"
+            },
+            "description": "Charges 5000 halala (QR 50.00) no-show fee. Cancels the job."
+          }
+        },
+        {
+          "name": "Unsuspend Driver (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/discipline/DRIVER_ID_HERE/unsuspend",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminNotes\": \"Driver acknowledged policy. First offense reviewed.\"\n}"
+            },
+            "description": "Resets warnings to 0, removes suspension."
+          }
+        },
+        {
+          "name": "Run Compliance Check (Single Driver)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/discipline/compliance/DRIVER_ID_HERE",
+            "description": "Checks license, insurance, visa, roadworthiness expiry. Blocks driver if any are expired."
+          }
+        },
+        {
+          "name": "Run Compliance Check (All Drivers — Daily Batch)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/discipline/compliance-all",
+            "description": "Runs compliance check on ALL drivers. Schedule this daily via Cloud Scheduler. Returns count of blocked drivers."
+          }
+        }
+      ]
+    }
+
+  ]
+}

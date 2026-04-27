@@ -1,6 +1,7 @@
 # RoadResQ API Documentation
 
-> **Version:** 1.0.0 · **Backend:** Node.js + Express + Firebase Admin SDK · **Database:** Firestore
+> **Version:** 3.0.0 · **Backend:** Node.js + Express + Firebase Admin SDK · **Database:** Firestore  
+> **Currency:** Qatar Riyal (QAR) — all prices stored as integers in halala (5000 = QR 50.00)
 
 ---
 
@@ -81,10 +82,10 @@ Creates a new Firebase Auth account + Firestore user document.
 **Body:**
 ```json
 {
-  "name": "Kent Reyes",
-  "email": "kent@roadresq.com",
+  "name": "Ahmed Al-Mansoori",
+  "email": "ahmed@roadresq.com",
   "password": "password123",
-  "phone": "+63 912 345 6789",
+  "phone": "+974 55 512 345",
   "role": "customer"
 }
 ```
@@ -103,11 +104,11 @@ Creates a new Firebase Auth account + Firestore user document.
   "status": "success",
   "data": {
     "uid": "firebase-uid-here",
-    "name": "Kent Reyes",
-    "email": "kent@roadresq.com",
-    "phone": "+63 912 345 6789",
+    "name": "Ahmed Al-Mansoori",
+    "email": "ahmed@roadresq.com",
+    "phone": "+974 55 512 345",
     "role": "customer",
-    "createdAt": "2025-01-01T00:00:00.000Z"
+    "createdAt": "2026-04-26T00:00:00.000Z"
   }
 }
 ```
@@ -170,11 +171,12 @@ Creates a new job. **Auto-detects category and calculates price.**
 {
   "userId": "firebase-uid",
   "serviceType": "tow",
-  "vehicleType": "Sedan",
-  "pickup": "123 Rizal Ave, Manila",
-  "drop": "AutoFix Garage, Quezon City",
+  "vehicleType": "sedan",
+  "pickup": "West Bay, Doha",
+  "drop": "The Pearl, Doha",
   "distanceKm": 8,
-  "description": "Optional notes"
+  "pickupCoords": { "lat": 25.3388, "lng": 51.5074 },
+  "customerNotes": "Optional notes"
 }
 ```
 
@@ -190,16 +192,18 @@ Creates a new job. **Auto-detects category and calculates price.**
 | `repairOption` | string | ❌ | `garage` \| `on_site` |
 | `garageId` | string | ❌ | Firestore garage document ID |
 
-**Category + Price auto-calculation:**
+**Category + Price calculation (halala integers):**
 
-| vehicleType | Category | Price Formula |
+| vehicleType | Base Fare | Per Km |
 |---|---|---|
-| Sedan, SUV, 4x4, Motorcycle, ATV | `leisure` | `250 + (km × 5 × 1.0)` |
-| Container, Generator, Precast Block, Pallets/Bricks | `heavy` | `250 + (km × 5 × 1.5)` |
+| sedan | QR 250.00 (25000 hl) | QR 5.00 (500 hl) |
+| suv | QR 300.00 (30000 hl) | QR 6.00 (600 hl) |
+| 4x4 | QR 380.00 (38000 hl) | QR 8.00 (800 hl) |
+| excavator | QR 2,000.00 (200000 hl) | QR 22.00 (2200 hl) |
 
-**Examples:**
-- Sedan, 8km → `250 + (8×5×1.0)` = **PHP 290**
-- Container, 80km → `250 + (80×5×1.5)` = **PHP 850**
+**Examples (halala):**
+- sedan, 8km → `25000 + (8 × 500)` = **29000 halala (QR 290.00)**
+- excavator, 35km → `200000 + (35 × 2200)` = **277000 halala (QR 2,770.00)**
 
 **Success (201):**
 ```json
@@ -210,14 +214,15 @@ Creates a new job. **Auto-detects category and calculates price.**
     "userId": "...",
     "driverId": null,
     "serviceType": "tow",
-    "vehicleType": "Sedan",
-    "category": "leisure",
-    "pickup": "123 Rizal Ave, Manila",
-    "drop": "AutoFix Garage, Quezon City",
-    "price": 290,
+    "vehicleType": "sedan",
+    "pickup": "West Bay, Doha",
+    "drop": "The Pearl, Doha",
+    "price": 29000,
+    "priceDisplay": "QR 290.00",
+    "currency": "QAR",
     "distanceKm": 8,
     "status": "pending",
-    "createdAt": "2025-01-01T00:00:00.000Z"
+    "createdAt": "2026-04-26T00:00:00.000Z"
   }
 }
 ```
@@ -257,15 +262,17 @@ Calculate price before creating a job.
 | `vehicleType` | `Sedan` |
 | `distanceKm` | `10` |
 
-**Example:** `GET /api/jobs/price-estimate?vehicleType=Container&distanceKm=20`
+**Example:** `GET /api/jobs/price-estimate?vehicleType=sedan&distanceKm=10`
 ```json
 {
   "status": "success",
   "data": {
-    "vehicleType": "Container",
-    "category": "heavy",
-    "distanceKm": 20,
-    "estimatedPrice": 400
+    "vehicleType": "sedan",
+    "serviceType": "tow",
+    "distanceKm": 10,
+    "price": 30000,
+    "priceDisplay": "QR 300.00",
+    "currency": "QAR"
   }
 }
 ```
@@ -318,12 +325,14 @@ Create a driver profile (run AFTER `/api/auth/register` with role=driver).
 ```json
 {
   "uid": "driver-firebase-uid",
-  "name": "Juan Driver",
+  "name": "Mohammed Al-Rashidi",
   "email": "driver@roadresq.com",
-  "phone": "+63 917 000 0001",
-  "vehicleType": "Sedan",
-  "licenseNumber": "N01-23-456789",
-  "experience": "3 years"
+  "phone": "+974 55 599 999",
+  "truckType": "standard_tow",
+  "vehicleModel": "Toyota Land Cruiser Flatbed 2021",
+  "maxCapacityKg": 3500,
+  "vehicleHeightMm": 1950,
+  "yearsExperience": 5
 }
 ```
 
@@ -384,8 +393,8 @@ Customer submits a quote request for special/heavy loads.
   "userId": "firebase-uid",
   "itemType": "Generator",
   "description": "1000KVA industrial generator",
-  "pickup": "Batangas Port",
-  "drop": "PEZA Calamba"
+  "pickup": "Hamad Port, Doha",
+  "drop": "Mesaieed Industrial City"
 }
 ```
 
@@ -406,29 +415,32 @@ Admin responds with a price.
 
 ---
 
-## 💡 Pricing Logic
+## 💡 Pricing Logic (Qatar Riyal / Halala)
 
 ```
-Base Price:      PHP 250
-Per Km:          PHP 5
-Heavy Multiplier: 1.5x
+All amounts stored as INTEGER HALALA (divide by 100 for QAR display)
 
-Leisure: price = 250 + (distanceKm × 5 × 1.0)
-Heavy:   price = 250 + (distanceKm × 5 × 1.5)
+Examples:
+  Sedan,   10km: 25000 + (10 × 500)  = 30000 halala = QR 300.00
+  SUV,     15km: 30000 + (15 × 600)  = 39000 halala = QR 390.00
+  4x4,     20km: 38000 + (20 × 800)  = 54000 halala = QR 540.00
+  Excavator 35km: 200000 + (35 × 2200) = 277000 halala = QR 2,770.00
+  No-show penalty (flat): 5000 halala = QR 50.00
 ```
 
-**Vehicle type mapping:**
-| Vehicle | Category | Multiplier |
-|---|---|---|
-| Sedan | leisure | 1.0x |
-| SUV | leisure | 1.0x |
-| 4x4 | leisure | 1.0x |
-| Motorcycle | leisure | 1.0x |
-| ATV | leisure | 1.0x |
-| Precast Block | heavy | 1.5x |
-| Pallets/Bricks | heavy | 1.5x |
-| Container | heavy | 1.5x |
-| Generator | heavy | 1.5x |
+**Full pricing table:**
+| Vehicle | Base (halala) | Base (QAR) | Per km (halala) |
+|---|---|---|---|
+| Motorcycle | 15000 | QR 150 | 300 |
+| ATV | 18000 | QR 180 | 400 |
+| Sedan | 25000 | QR 250 | 500 |
+| SUV | 30000 | QR 300 | 600 |
+| 4x4 | 38000 | QR 380 | 800 |
+| Skid Loader | 80000 | QR 800 | 1200 |
+| Telehandler | 120000 | QR 1,200 | 1600 |
+| JCB | 150000 | QR 1,500 | 1800 |
+| Excavator | 200000 | QR 2,000 | 2200 |
+| Garage Urgent | 30000 | QR 300 | 500 |
 
 ---
 

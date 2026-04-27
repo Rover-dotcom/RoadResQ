@@ -1,13 +1,22 @@
 /**
- * Driver Model — RoadResQ (Updated)
+ * Driver Model — RoadResQ (Week 4)
  *
  * Enhanced driver schema with:
  *   - truckType: what truck/transport they operate
- *   - maxCapacityKg: maximum load the truck can carry
+ *   - maxCapacityKg: maximum carrying capacity
+ *   - vehicleHeightMm: vehicle height for basement/restricted access filter
+ *   - equipmentTypes[]: boom_truck | flatbed | flatbed_tow
+ *   - yearsExperience: used for expert driver routing priority
+ *   - hasGatePass: required for certain industrial sites
+ *   - isExpert: manually set by admin for special load routing
  *   - serviceTypes[]: which services they support
  *   - isAvailable: false when on an active job
  *   - rating: driver rating (0-5)
  *   - completedJobs: total completed job count
+ *   - warnings: discipline warning counter (3 = suspension)
+ *   - isSuspended: true if disciplined
+ *   - Document expiry: licenseExpiry, insuranceExpiry, roadworthinessExpiry, visaExpiry
+ *   - complianceBlocked: true if any document expired
  */
 
 const { db } = require('../config/firebase');
@@ -35,22 +44,58 @@ function buildDriverDocument(uid, data) {
     maxCapacityKg: data.maxCapacityKg || null,   // e.g. 2500 (kg)
     maxLengthM: data.maxLengthM || null,          // e.g. 5.5 (metres) — for flatbeds
 
+    // ─── Week 4: Advanced Capability Profile ───────────────────
+    vehicleHeightMm: data.vehicleHeightMm || null,
+    // Vehicle height in mm — used for basement/restricted access filter
+    // e.g. 2800 means vehicle is 2.8m tall
+
+    equipmentTypes: data.equipmentTypes || [],
+    // Equipment the driver/truck has. Options:
+    //   'boom_truck'  — can lift loads (Heavy / Industrial)
+    //   'flatbed'     — standard flatbed transport
+    //   'flatbed_tow' — flatbed tow truck (towing)
+
+    yearsExperience: data.yearsExperience ? parseInt(data.yearsExperience) : 0,
+    // Number of years driving experience (used for priority + expert routing)
+
+    hasGatePass: data.hasGatePass || false,
+    // true = driver has a valid industrial site gate pass
+
+    isExpert: data.isExpert || false,
+    // Manually set by admin — enables special load routing (heavy/industrial)
+
     // ─── Service Capabilities ──────────────────────────────────
     serviceTypes: data.serviceTypes || [SERVICE_TYPES.TOW],
     // Options: tow | garage | heavy_equipment | quote_industrial
     // A driver can support multiple service types
 
-    // ─── Credentials ───────────────────────────────────────────
+    // ─── Credentials / Documents ───────────────────────────────
     licenseNumber: data.licenseNumber || '',
-    licenseExpiry: data.licenseExpiry || null,   // ISO date string
-    experience: data.experience || '',
+    licenseExpiry: data.licenseExpiry || null,       // ISO date string — 30d/7d notify, expired = BLOCK
+    insuranceExpiry: data.insuranceExpiry || null,   // Vehicle insurance expiry
+    roadworthinessExpiry: data.roadworthinessExpiry || null, // Vehicle roadworthiness certificate
+    visaExpiry: data.visaExpiry || null,             // Work visa expiry
     profilePhotoUrl: data.profilePhotoUrl || null,
+
+    // ─── Document Compliance ───────────────────────────────────
+    complianceBlocked: false,                    // true if any document expired
+    complianceWarnings: [],                      // array of warning strings
+    expiryNotifications: {},                     // { licenseExpiry: { daysRemaining, notifiedAt } }
+    lastComplianceCheck: null,
 
     // ─── Status ────────────────────────────────────────────────
     isOnline: false,                             // toggled by driver
     isApproved: false,                           // set by admin
     isAvailable: true,                           // false when on active job
     activeJobId: null,                           // currently assigned job
+
+    // ─── Discipline System ─────────────────────────────────────
+    warnings: 0,                                 // incremented on late/no-show events
+    isSuspended: false,                          // true after 3 warnings
+    suspendedAt: null,
+    suspensionReason: null,
+    lastWarningAt: null,
+    lastWarningJobId: null,
 
     // ─── Location (last known) ─────────────────────────────────
     lastLocation: null,                          // { lat, lng }

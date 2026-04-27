@@ -1,99 +1,144 @@
 /**
- * Pricing Engine — RoadResQ
+ * Pricing Engine — RoadResQ (Week 4)
  *
- * Vehicle-specific pricing — NOT just a heavy/leisure multiplier.
- * Each vehicle type has its own base fare and per-km rate
- * based on the truck size and complexity required.
+ * INTEGER PRICING: All prices stored as integers in QR halala (smallest unit).
+ *   5000 = QR 50.00  (divide by 100 for display)
  *
- * Garage urgent has a flat call-out fee + per-km travel.
- * Quote Industrial → no auto-price (manual admin quote always).
+ * Vehicle-specific pricing — each vehicle has its own base fare + per-km rate.
+ * Garage urgent → flat call-out fee + per-km travel.
+ * Quote Industrial → no auto-price (manual or bidding).
+ *
+ * TRAFFIC BUFFER:
+ *   Peak hours (Qatar): ETA × 1.25 (25% buffer added automatically)
  */
+
+// ─── PRICING TABLE (stored in halala: integer, divide by 100 for QR display) ──
 
 const PRICING_TABLE = {
   // ─── TOW SERVICE ─────────────────────────────────────────────────────────────
   motorcycle: {
     label: 'Motorcycle Tow',
-    baseFare: 150,
-    perKm: 3,
-    currency: 'PHP',
+    baseFare: 15000,    // QR 150.00
+    perKm: 300,         // QR 3.00 per km
+    currency: 'QAR',
     note: 'Light tow truck, single bike capacity',
   },
   atv: {
     label: 'ATV Tow',
-    baseFare: 180,
-    perKm: 4,
-    currency: 'PHP',
+    baseFare: 18000,    // QR 180.00
+    perKm: 400,         // QR 4.00 per km
+    currency: 'QAR',
     note: 'Light tow truck with ATV platform',
   },
   sedan: {
     label: 'Sedan Tow',
-    baseFare: 250,
-    perKm: 5,
-    currency: 'PHP',
+    baseFare: 25000,    // QR 250.00
+    perKm: 500,         // QR 5.00 per km
+    currency: 'QAR',
     note: 'Standard flatbed/wheel-lift tow',
   },
   suv: {
     label: 'SUV Tow',
-    baseFare: 300,
-    perKm: 6,
-    currency: 'PHP',
+    baseFare: 30000,    // QR 300.00
+    perKm: 600,         // QR 6.00 per km
+    currency: 'QAR',
     note: 'Standard flatbed tow — higher capacity for SUV weight',
   },
   '4x4': {
     label: '4x4 / Pickup Tow',
-    baseFare: 380,
-    perKm: 8,
-    currency: 'PHP',
+    baseFare: 38000,    // QR 380.00
+    perKm: 800,         // QR 8.00 per km
+    currency: 'QAR',
     note: 'Heavy tow truck required — 4x4 and large pickups',
   },
 
   // ─── HEAVY EQUIPMENT ─────────────────────────────────────────────────────────
   skid_loader: {
     label: 'Skid Loader Transport',
-    baseFare: 800,
-    perKm: 12,
-    currency: 'PHP',
+    baseFare: 80000,    // QR 800.00
+    perKm: 1200,        // QR 12.00 per km
+    currency: 'QAR',
     note: 'Flatbed trailer, up to 5 tons',
   },
   telehandler: {
     label: 'Telehandler Transport',
-    baseFare: 1200,
-    perKm: 16,
-    currency: 'PHP',
+    baseFare: 120000,   // QR 1,200.00
+    perKm: 1600,        // QR 16.00 per km
+    currency: 'QAR',
     note: 'Heavy flatbed trailer, up to 8 tons',
   },
   jcb: {
     label: 'JCB / Backhoe Transport',
-    baseFare: 1500,
-    perKm: 18,
-    currency: 'PHP',
+    baseFare: 150000,   // QR 1,500.00
+    perKm: 1800,        // QR 18.00 per km
+    currency: 'QAR',
     note: 'Heavy flatbed trailer, up to 10 tons',
   },
   excavator: {
     label: 'Excavator Transport',
-    baseFare: 2000,
-    perKm: 22,
-    currency: 'PHP',
+    baseFare: 200000,   // QR 2,000.00
+    perKm: 2200,        // QR 22.00 per km
+    currency: 'QAR',
     note: 'Heavy duty flatbed + securing equipment, up to 15 tons',
   },
 
   // ─── GARAGE / REPAIR ─────────────────────────────────────────────────────────
   garage_urgent: {
     label: 'Urgent Garage Call-Out',
-    baseFare: 300,
-    perKm: 5,
-    currency: 'PHP',
+    baseFare: 30000,    // QR 300.00
+    perKm: 500,         // QR 5.00 per km
+    currency: 'QAR',
     note: 'Mechanic dispatched to your location + travel fee',
+  },
+  onsite_repair: {
+    label: 'On-Site Repair',
+    baseFare: 0,        // QR 0 — price is set by garage estimate
+    perKm: 0,
+    currency: 'QAR',
+    note: 'Price determined by garage estimate after assessment',
+  },
+
+  // ─── NO-SHOW / PENALTY ───────────────────────────────────────────────────────
+  noshow_penalty: {
+    label: 'Customer No-Show Penalty',
+    baseFare: 5000,     // QR 50.00
+    perKm: 0,
+    currency: 'QAR',
+    note: 'Charged when customer does not respond for 10+ minutes',
   },
 };
 
+// ─── Helper: Convert integer halala to QR display string ──────────────────────
+
+/**
+ * Convert integer halala to human-readable QR amount.
+ * @param {number} halala - integer amount (5000 = QR 50.00)
+ * @returns {string} e.g. "QR 50.00"
+ */
+function toQRDisplay(halala) {
+  if (halala == null) return null;
+  return `QR ${(halala / 100).toFixed(2)}`;
+}
+
+/**
+ * Convert QR decimal to integer halala for storage.
+ * @param {number} qr - decimal QR (50.00)
+ * @returns {number} integer halala (5000)
+ */
+function toHalala(qr) {
+  return Math.round(parseFloat(qr) * 100);
+}
+
+// ─── Price Calculation ────────────────────────────────────────────────────────
+
 /**
  * Calculate the price for a job.
+ * All amounts stored/returned as integers (halala).
  *
- * @param {string} priceKey - Key from PRICING_TABLE (e.g. 'sedan', 'jcb')
- * @param {number} distanceKm - Distance in km
- * @returns {{ price: number, breakdown: object } | null}
- *   Returns null if this vehicle type requires a quote.
+ * @param {string} priceKey - Key from PRICING_TABLE
+ * @param {number} distanceKm
+ * @returns {{ price: number, currency: string, breakdown: object } | null}
+ *   price is in integer halala (5000 = QR 50.00)
  */
 function calculatePrice(priceKey, distanceKm = 5) {
   if (!priceKey) return null;
@@ -102,19 +147,24 @@ function calculatePrice(priceKey, distanceKm = 5) {
   if (!config) return null;
 
   const km = Math.max(0, parseFloat(distanceKm) || 5);
-  const distanceCharge = km * config.perKm;
+  const distanceCharge = Math.round(km * config.perKm);
   const total = config.baseFare + distanceCharge;
 
   return {
-    price: Math.round(total * 100) / 100,
+    price: total,                       // integer halala (5000 = QR 50.00)
+    priceDisplay: toQRDisplay(total),   // "QR 50.00"
     currency: config.currency,
     breakdown: {
       label: config.label,
       baseFare: config.baseFare,
+      baseFareDisplay: toQRDisplay(config.baseFare),
       distanceKm: km,
       perKm: config.perKm,
-      distanceCharge: Math.round(distanceCharge * 100) / 100,
-      total: Math.round(total * 100) / 100,
+      perKmDisplay: toQRDisplay(config.perKm),
+      distanceCharge,
+      distanceChargeDisplay: toQRDisplay(distanceCharge),
+      total,
+      totalDisplay: toQRDisplay(total),
       note: config.note,
     },
   };
@@ -125,7 +175,7 @@ function calculatePrice(priceKey, distanceKm = 5) {
  * Used by: GET /api/jobs/price-estimate
  */
 function getPriceEstimate(vehicleType, distanceKm) {
-  const { getVehicleSpec, GARAGE_SPECS } = require('./serviceEngine');
+  const { getVehicleSpec } = require('./serviceEngine');
   const spec = getVehicleSpec(vehicleType);
 
   if (!spec) {
@@ -154,4 +204,10 @@ function getPriceEstimate(vehicleType, distanceKm) {
   };
 }
 
-module.exports = { PRICING_TABLE, calculatePrice, getPriceEstimate };
+module.exports = {
+  PRICING_TABLE,
+  calculatePrice,
+  getPriceEstimate,
+  toQRDisplay,
+  toHalala,
+};

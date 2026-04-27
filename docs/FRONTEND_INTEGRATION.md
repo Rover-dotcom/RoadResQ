@@ -1,8 +1,9 @@
-# RoadResQ — Frontend Integration Guide
+# RoadResQ — Frontend Integration Guide (v3.0.0 / Week 4)
 
 > **For:** Flutter Developer  
 > **Backend Developer:** Cedric (blackburnxprojects@gmail.com)  
-> **Last Updated:** April 2026
+> **Last Updated:** April 2026  
+> **Currency:** Qatar Riyal (QAR) — all prices in integer halala (5000 = QR 50.00)
 
 ---
 
@@ -74,8 +75,8 @@ POST https://api-h6acdw3itq-ww.a.run.app/api/auth/register
 {
   "email": "customer@example.com",
   "password": "password123",
-  "name": "John Dela Cruz",
-  "phone": "+63912345678",
+  "name": "Ahmed Al-Mansoori",
+  "phone": "+97455512345",
   "role": "customer"
 }
 ```
@@ -143,21 +144,28 @@ GET https://api-h6acdw3itq-ww.a.run.app/api/jobs/price-estimate?vehicleType=Seda
   "status": "success",
   "data": {
     "requiresQuote": false,
-    "vehicleType": "Sedan",
+    "vehicleType": "sedan",
     "serviceType": "tow",
-    "price": 300.0,
-    "currency": "PHP",
+    "price": 30000,
+    "priceDisplay": "QR 300.00",
+    "currency": "QAR",
     "breakdown": {
       "label": "Sedan Tow",
-      "baseFare": 250,
+      "baseFare": 25000,
+      "baseFareDisplay": "QR 250.00",
       "distanceKm": 10,
-      "perKm": 5,
-      "distanceCharge": 50,
-      "total": 300
+      "perKm": 500,
+      "perKmDisplay": "QR 5.00",
+      "distanceCharge": 5000,
+      "distanceChargeDisplay": "QR 50.00",
+      "total": 30000,
+      "totalDisplay": "QR 300.00"
     }
   }
 }
 ```
+
+> ⚠️ **All prices are integers in halala.** Divide by 100 for display: `30000 halala = QR 300.00`
 
 **Response (quote required):**
 ```json
@@ -170,20 +178,21 @@ GET https://api-h6acdw3itq-ww.a.run.app/api/jobs/price-estimate?vehicleType=Seda
 }
 ```
 
-### Pricing Reference Table
+### Pricing Reference Table (Qatar Riyal)
 
-| Vehicle | Base Fare | Per KM |
-|---|---|---|
-| Motorcycle | ₱150 | ₱3/km |
-| ATV | ₱180 | ₱4/km |
-| Sedan | ₱250 | ₱5/km |
-| SUV | ₱300 | ₱6/km |
-| 4x4 | ₱380 | ₱8/km |
-| Skid Loader | ₱800 | ₱12/km |
-| Telehandler | ₱1,200 | ₱16/km |
-| JCB | ₱1,500 | ₱18/km |
-| Excavator | ₱2,000 | ₱22/km |
-| Garage Urgent | ₱300 | ₱5/km |
+| Vehicle | Base Fare | Per KM | Halala (base) |
+|---|---|---|---|
+| Motorcycle | QR 150 | QR 3/km | 15000 |
+| ATV | QR 180 | QR 4/km | 18000 |
+| Sedan | QR 250 | QR 5/km | 25000 |
+| SUV | QR 300 | QR 6/km | 30000 |
+| 4x4 | QR 380 | QR 8/km | 38000 |
+| Skid Loader | QR 800 | QR 12/km | 80000 |
+| Telehandler | QR 1,200 | QR 16/km | 120000 |
+| JCB | QR 1,500 | QR 18/km | 150000 |
+| Excavator | QR 2,000 | QR 22/km | 200000 |
+| Garage Urgent | QR 300 | QR 5/km | 30000 |
+| No-Show Penalty | QR 50 (flat) | — | 5000 |
 
 ---
 
@@ -367,15 +376,22 @@ When a driver registers, they must provide:
 ```json
 {
   "uid": "<Firebase UID>",
-  "name": "Juan Santos",
+  "name": "Mohammed Al-Rashidi",
   "email": "driver@example.com",
-  "phone": "+63917000000",
+  "phone": "+97455599999",
   "truckType": "standard_tow",
-  "truckModel": "Isuzu Elf 2022",
-  "truckPlate": "ABC 1234",
-  "maxCapacityKg": 2500,
+  "vehicleModel": "Toyota Land Cruiser Flatbed 2021",
+  "licensePlate": "D 77712",
+  "maxCapacityKg": 3500,
   "serviceTypes": ["tow"],
-  "licenseNumber": "N01-00-000000"
+  "vehicleHeightMm": 1950,
+  "equipmentTypes": ["flatbed_tow"],
+  "yearsExperience": 5,
+  "hasGatePass": false,
+  "licenseExpiry": "2026-12-31",
+  "insuranceExpiry": "2026-09-30",
+  "visaExpiry": "2027-03-15",
+  "roadworthinessExpiry": "2026-11-01"
 }
 ```
 
@@ -404,10 +420,9 @@ POST https://api-h6acdw3itq-ww.a.run.app/api/quotes
 {
   "userId": "abc123",
   "serviceType": "quote_industrial",
-  "vehicleType": "Container",
   "itemDescription": "20ft shipping container, needs crane offload",
-  "pickup": "Port Area, Manila",
-  "drop": "Alabang Industrial Zone",
+  "pickup": "Hamad Port, Umm Al-Houl, Doha",
+  "drop": "Mesaieed Industrial City",
   "estimatedWeight": 25000,
   "urgency": "medium",
   "customerNotes": "Available weekdays only"
@@ -442,7 +457,7 @@ Run these in order using the Production environment:
 
 1. `GET /` → Should return `{ status: "running" }`
 2. `GET /api/jobs/service-info` → Returns all service types
-3. `GET /api/jobs/price-estimate?vehicleType=Sedan&distanceKm=10` → Returns ₱300
+3. `GET /api/jobs/price-estimate?vehicleType=sedan&distanceKm=10` → Returns `30000 halala (QR 300.00)`
 4. `POST /api/auth/register` → Create a test customer
 5. `POST /api/auth/register` (role: driver) → Create a test driver
 6. `POST /api/drivers` → Create driver profile with `truckType: "standard_tow"`
