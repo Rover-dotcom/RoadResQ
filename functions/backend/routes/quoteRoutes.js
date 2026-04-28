@@ -9,6 +9,9 @@ const {
   respondToQuoteHandler,
   acceptQuoteByCustomerHandler,
   rejectQuoteByCustomerHandler,
+  submitQuoteBidHandler,
+  getQuoteBidsHandler,
+  acceptQuoteBidHandler,
 } = require('../controllers/quoteController');
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -51,5 +54,14 @@ router.get('/:id', getQuoteByIdHandler);                              // Single 
 router.put('/:id/respond', respondValidation, respondToQuoteHandler); // Garage responds with price
 router.put('/:id/accept', acceptQuoteByCustomerHandler);              // Customer accepts
 router.put('/:id/reject', rejectQuoteByCustomerHandler);              // Customer rejects
+
+// ─── Bidding System (Industrial / Heavy Equipment) ────────────────────────────
+// POST /api/quotes/:id/bid              — driver/garage submits bid (price + ETA + equipment)
+// GET  /api/quotes/:id/bids             — customer views all bids (sorted by price, highlights best)
+// PUT  /api/quotes/:id/bids/:bidId/accept — customer accepts winning bid → creates linked job
+
+router.post('/:id/bid', submitQuoteBidHandler);
+router.get('/:id/bids', getQuoteBidsHandler);
+router.put('/:id/bids/:bidId/accept', acceptQuoteBidHandler);
 
 module.exports = router;

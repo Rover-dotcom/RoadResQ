@@ -1,272 +1,389 @@
 /**
- * Driver Discipline System — RoadResQ (Week 4)
+ * Discipline Engine — RoadResQ (Week 4)
  *
- * Tracks driver behaviour and enforces penalties:
+ * Handles:
+ *   1. NO-SHOW PENALTY
+ *      If customer does not respond within 10 minutes after driver arrives
+ *      → charge customer QR 50 (5000 halala) wait fee
  *
- *   1. Customer not responding > 10min → charge customer QR 50.00 (5000 halala)
- *   2. Driver late → warnings += 1
- *   3. Warnings >= 3 → suspend account
- *   4. No-show by driver → warnings += 1, job marked as no_driver
+ *   2. DRIVER LATE WARNING
+ *      If driver is late (ETA exceeded significantly)
+ *      → add 1 warning to driver record
+ *      → at 3 warnings → suspend account
  *
- * Document compliance (separate but enforced here for blocking):
- *   30 days to expiry → notify driver
- *    7 days to expiry → daily notify driver
- *   Expired            → BLOCK (isAvailable=false, complianceBlocked=true)
+ *   3. AUTO-SUSPEND LOGIC
+ *      warnings >= 3 → isSuspended = true
+ *      Admin must manually clear suspension
+ *
+ *   4. DOCUMENT COMPLIANCE NOTIFIER
+ *      30 days before expiry → notify (complianceStatus: 'expiring_soon')
+ *       7 days before expiry → daily notify (complianceStatus: 'expiring_critical')
+ *      Expired              → block driver (complianceBlocked: true)
+ *
+ *   5. JOB PRIORITY QUEUE
+ *      Jobs are scored by urgency, wait time, and service type
+ *      Higher score = dispatched first
  */
 
 const { db } = require('../config/firebase');
 
 const DRIVERS_COLLECTION = 'drivers';
-const DISCIPLINE_COLLECTION = 'driver_discipline_log';
-const NOSHOW_WAIT_MINUTES = 10;
-const NOSHOW_CHARGE_HALALA = 5000; // QR 50.00
-const SUSPENSION_WARNING_THRESHOLD = 3;
+const JOBS_COLLECTION = 'jobs';
+const DISCIPLINE_LOGS_COLLECTION = 'discipline_logs';
+const COMPLIANCE_ALERTS_COLLECTION = 'compliance_alerts';
 
-// ─── Record Discipline Event ──────────────────────────────────────────────────
+const NO_SHOW_WAIT_FEE = 5000;        // QR 50.00 in halala
+const LATE_THRESHOLD_MINUTES = 15;    // Minutes over ETA before "late"
+const WARNINGS_BEFORE_SUSPEND = 3;
+const NOTIFY_30_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const NOTIFY_7_DAYS_MS  =  7 * 24 * 60 * 60 * 1000;
+
+// ─── 1. NO-SHOW PENALTY ───────────────────────────────────────────────────────
 
 /**
- * Log a discipline event for a driver.
+ * Apply no-show wait fee to customer when they don't respond
+ * within 10 minutes after driver arrival.
  *
- * @param {string} driverId
- * @param {string} eventType - 'late' | 'noshow' | 'customer_noshow' | 'complaint'
  * @param {string} jobId
- * @param {string} [notes]
+ * @param {string} customerId
+ * @param {string} driverId
  */
-async function logDisciplineEvent(driverId, eventType, jobId, notes = '') {
+async function applyNoShowPenalty(jobId, customerId, driverId) {
+  const now = new Date().toISOString();
+
   const logEntry = {
-    driverId,
-    eventType,
+    id: `penalty_${jobId}_${Date.now()}`,
+    type: 'no_show_fee',
     jobId,
-    notes,
-    createdAt: new Date().toISOString(),
+    customerId,
+    driverId,
+    amount: NO_SHOW_WAIT_FEE,
+    amountDisplay: `QR ${(NO_SHOW_WAIT_FEE / 100).toFixed(2)}`,
+    reason: 'Customer did not respond within 10 minutes after driver arrival.',
+    appliedAt: now,
   };
-  await db.collection(DISCIPLINE_COLLECTION).add(logEntry);
+
+  // Log to discipline collection
+  await db.collection(DISCIPLINE_LOGS_COLLECTION).doc(logEntry.id).set(logEntry);
+
+  // Update job with fee flag
+  await db.collection(JOBS_COLLECTION).doc(jobId).update({
+    noShowFeeApplied: true,
+    noShowFeeAmount: NO_SHOW_WAIT_FEE,
+    noShowFeeAt: now,
+  });
+
   return logEntry;
 }
 
-// ─── Driver Late Penalty ──────────────────────────────────────────────────────
+// ─── 2. DRIVER LATE WARNING ───────────────────────────────────────────────────
 
 /**
- * Record a "driver late" warning.
- * After 3 warnings, account is suspended.
+ * Issue a late warning to a driver.
+ * At 3 warnings → auto-suspend.
  *
  * @param {string} driverId
  * @param {string} jobId
+ * @param {string} reason
+ * @returns {{ warned: boolean, suspended: boolean, warnings: number }}
  */
-async function recordDriverLate(driverId, jobId) {
+async function issueLateWarning(driverId, jobId, reason = 'Driver arrived significantly late') {
   const driverRef = db.collection(DRIVERS_COLLECTION).doc(driverId);
-  const driverDoc = await driverRef.get();
+  const driverSnap = await driverRef.get();
 
-  if (!driverDoc.exists) throw new Error('Driver not found');
-  const driver = driverDoc.data();
+  if (!driverSnap.exists) throw new Error(`Driver ${driverId} not found`);
+  const driver = driverSnap.data();
 
-  const warnings = (driver.warnings || 0) + 1;
+  const currentWarnings = driver.warningCount || 0;
+  const newWarnings = currentWarnings + 1;
+  const shouldSuspend = newWarnings >= WARNINGS_BEFORE_SUSPEND;
+
+  const now = new Date().toISOString();
+
   const updates = {
-    warnings,
-    lastWarningAt: new Date().toISOString(),
+    warningCount: newWarnings,
+    lastWarningAt: now,
+    lastWarningReason: reason,
     lastWarningJobId: jobId,
   };
 
-  if (warnings >= SUSPENSION_WARNING_THRESHOLD) {
+  if (shouldSuspend) {
     updates.isSuspended = true;
-    updates.suspendedAt = new Date().toISOString();
-    updates.suspensionReason = `Auto-suspended: ${warnings} late/no-show warnings.`;
-    updates.isAvailable = false;
-    updates.isOnline = false;
-    console.warn(`[Discipline] Driver ${driverId} suspended after ${warnings} warnings.`);
+    updates.suspendedAt = now;
+    updates.suspensionReason = `Auto-suspended after ${WARNINGS_BEFORE_SUSPEND} late warnings.`;
   }
 
   await driverRef.update(updates);
-  await logDisciplineEvent(driverId, 'late', jobId, `Warning ${warnings}/${SUSPENSION_WARNING_THRESHOLD}`);
 
-  return { warnings, suspended: warnings >= SUSPENSION_WARNING_THRESHOLD };
-}
-
-// ─── Driver No-Show ───────────────────────────────────────────────────────────
-
-/**
- * Mark driver as no-show for a job.
- * Adds a warning and updates job status.
- *
- * @param {string} driverId
- * @param {string} jobId
- */
-async function recordDriverNoShow(driverId, jobId) {
-  const result = await recordDriverLate(driverId, jobId);
-  await logDisciplineEvent(driverId, 'noshow', jobId, 'Driver did not show up');
-
-  // Reset the job back to pending so it can be reassigned
-  await db.collection('jobs').doc(jobId).update({
-    status: 'pending',
-    driverId: null,
-    assignedAt: null,
-    noShowAt: new Date().toISOString(),
-    noShowDriverId: driverId,
-    adminNotes: `Driver ${driverId} no-show. Job re-opened for reassignment.`,
-  });
-
-  return result;
-}
-
-// ─── Customer No-Show Charge ──────────────────────────────────────────────────
-
-/**
- * Charge customer when they do not respond for 10+ minutes.
- * Creates a charge record on the job document.
- *
- * @param {string} jobId
- * @param {string} driverId - The driver who waited
- */
-async function chargeCustomerNoShow(jobId, driverId) {
-  const jobRef = db.collection('jobs').doc(jobId);
-  const jobDoc = await jobRef.get();
-  if (!jobDoc.exists) throw new Error('Job not found');
-
-  const job = jobDoc.data();
-
-  await jobRef.update({
-    customerNoShowCharge: NOSHOW_CHARGE_HALALA,
-    customerNoShowChargeDisplay: `QR ${(NOSHOW_CHARGE_HALALA / 100).toFixed(2)}`,
-    customerNoShowAt: new Date().toISOString(),
-    noShowWaitMinutes: NOSHOW_WAIT_MINUTES,
-    status: 'cancelled',
-  });
-
-  await logDisciplineEvent(driverId, 'customer_noshow', jobId,
-    `Customer did not respond after ${NOSHOW_WAIT_MINUTES} minutes. Charge: QR ${(NOSHOW_CHARGE_HALALA / 100).toFixed(2)}`
-  );
+  // Log warning
+  const logEntry = {
+    id: `warning_${driverId}_${Date.now()}`,
+    type: 'late_warning',
+    driverId,
+    jobId,
+    reason,
+    warningNumber: newWarnings,
+    autoSuspended: shouldSuspend,
+    issuedAt: now,
+  };
+  await db.collection(DISCIPLINE_LOGS_COLLECTION).doc(logEntry.id).set(logEntry);
 
   return {
-    jobId,
-    charge: NOSHOW_CHARGE_HALALA,
-    chargeDisplay: `QR ${(NOSHOW_CHARGE_HALALA / 100).toFixed(2)}`,
-    waitMinutes: NOSHOW_WAIT_MINUTES,
+    warned: true,
+    suspended: shouldSuspend,
+    warnings: newWarnings,
+    message: shouldSuspend
+      ? `Driver account suspended after ${WARNINGS_BEFORE_SUSPEND} warnings.`
+      : `Warning ${newWarnings}/${WARNINGS_BEFORE_SUSPEND} issued.`,
   };
 }
 
-// ─── Unsuspend Driver ─────────────────────────────────────────────────────────
+// ─── 3. CLEAR SUSPENSION (Admin) ──────────────────────────────────────────────
 
 /**
- * Admin manually unsuspends a driver and resets warnings.
- *
+ * Admin clears a driver's suspension and resets warning count.
  * @param {string} driverId
- * @param {string} adminNotes
+ * @param {string} adminNote
  */
-async function unsuspendDriver(driverId, adminNotes = '') {
+async function clearDriverSuspension(driverId, adminNote = '') {
+  const now = new Date().toISOString();
+
   await db.collection(DRIVERS_COLLECTION).doc(driverId).update({
     isSuspended: false,
-    suspendedAt: null,
-    suspensionReason: null,
-    warnings: 0,
-    unsuspendedAt: new Date().toISOString(),
-    adminNotes: adminNotes || 'Suspension lifted by admin.',
+    warningCount: 0,
+    suspensionClearedAt: now,
+    suspensionClearedNote: adminNote,
   });
 
-  await logDisciplineEvent(driverId, 'unsuspended', 'N/A', adminNotes);
-  return { driverId, status: 'unsuspended' };
+  const logEntry = {
+    id: `clear_${driverId}_${Date.now()}`,
+    type: 'suspension_cleared',
+    driverId,
+    adminNote,
+    clearedAt: now,
+  };
+  await db.collection(DISCIPLINE_LOGS_COLLECTION).doc(logEntry.id).set(logEntry);
+
+  return { cleared: true, driverId };
 }
 
-// ─── Document Compliance Checker ──────────────────────────────────────────────
+// ─── 4. DOCUMENT COMPLIANCE NOTIFIER ─────────────────────────────────────────
 
 /**
- * Check all driver documents and:
- *  - Notify at 30 days remaining
- *  - Notify daily at 7 days remaining
- *  - Block (complianceBlocked=true) if expired
+ * Check a single driver's documents and return compliance status.
+ * Also writes a compliance_alerts record if action is needed.
  *
- * Should be run on a schedule (e.g., Cloud Scheduler daily).
+ * Tiers:
+ *   'valid'             — all documents fine
+ *   'expiring_soon'     — something expires in 8–30 days
+ *   'expiring_critical' — something expires in 1–7 days
+ *   'expired'           — something already expired → block driver
  *
  * @param {string} driverId
- * @returns {{ blocked: boolean, warnings: string[] }}
+ * @param {object} driverData — Firestore document data
  */
-async function checkAndEnforceDocumentCompliance(driverId) {
-  const driverRef = db.collection(DRIVERS_COLLECTION).doc(driverId);
-  const driverDoc = await driverRef.get();
-  if (!driverDoc.exists) throw new Error('Driver not found');
-
-  const driver = driverDoc.data();
-  const now = new Date();
-  const warnings = [];
-  let shouldBlock = false;
-
-  const docFields = [
-    { field: 'licenseExpiry', label: 'Driver License' },
-    { field: 'insuranceExpiry', label: 'Vehicle Insurance' },
-    { field: 'roadworthinessExpiry', label: 'Vehicle Roadworthiness Certificate' },
-    { field: 'visaExpiry', label: 'Work Visa' },
+async function checkAndNotifyCompliance(driverId, driverData) {
+  const now = Date.now();
+  const documents = [
+    { key: 'licenseExpiry',          label: 'Driving License' },
+    { key: 'insuranceExpiry',        label: 'Vehicle Insurance' },
+    { key: 'visaExpiry',             label: 'Residence Visa' },
+    { key: 'roadworthinessExpiry',   label: 'Roadworthiness Certificate' },
   ];
 
-  const expiryNotifications = driver.expiryNotifications || {};
+  let overallStatus = 'valid';
+  const alerts = [];
 
-  for (const { field, label } of docFields) {
-    if (!driver[field]) continue;
+  for (const doc of documents) {
+    const expiryStr = driverData[doc.key];
+    if (!expiryStr) continue;
 
-    const expiry = new Date(driver[field]);
-    const daysRemaining = Math.floor((expiry - now) / (1000 * 60 * 60 * 24));
+    const expiryMs = new Date(expiryStr).getTime();
+    const diffMs = expiryMs - now;
 
-    if (daysRemaining < 0) {
-      // Expired → block
-      shouldBlock = true;
-      warnings.push(`${label} has EXPIRED. Account blocked.`);
-    } else if (daysRemaining <= 7) {
-      warnings.push(`${label} expires in ${daysRemaining} day(s). Renew immediately.`);
-      expiryNotifications[field] = { daysRemaining, notifiedAt: now.toISOString() };
-    } else if (daysRemaining <= 30) {
-      warnings.push(`${label} expires in ${daysRemaining} day(s).`);
-      if (!expiryNotifications[field] || daysRemaining <= 7) {
-        expiryNotifications[field] = { daysRemaining, notifiedAt: now.toISOString() };
-      }
+    if (diffMs < 0) {
+      // Expired
+      alerts.push({
+        document: doc.label,
+        status: 'expired',
+        expiryDate: expiryStr,
+        daysRemaining: Math.floor(diffMs / (24 * 60 * 60 * 1000)),
+      });
+      overallStatus = 'expired';
+    } else if (diffMs <= NOTIFY_7_DAYS_MS) {
+      alerts.push({
+        document: doc.label,
+        status: 'expiring_critical',
+        expiryDate: expiryStr,
+        daysRemaining: Math.ceil(diffMs / (24 * 60 * 60 * 1000)),
+      });
+      if (overallStatus !== 'expired') overallStatus = 'expiring_critical';
+    } else if (diffMs <= NOTIFY_30_DAYS_MS) {
+      alerts.push({
+        document: doc.label,
+        status: 'expiring_soon',
+        expiryDate: expiryStr,
+        daysRemaining: Math.ceil(diffMs / (24 * 60 * 60 * 1000)),
+      });
+      if (overallStatus === 'valid') overallStatus = 'expiring_soon';
     }
   }
 
-  const updates = {
-    complianceWarnings: warnings,
-    expiryNotifications,
-    lastComplianceCheck: now.toISOString(),
-  };
-
-  if (shouldBlock) {
-    updates.complianceBlocked = true;
-    updates.isAvailable = false;
-    updates.isApproved = false; // block from taking jobs
-  } else {
-    updates.complianceBlocked = false;
+  // Apply compliance block if expired
+  const shouldBlock = overallStatus === 'expired';
+  if (shouldBlock !== (driverData.complianceBlocked === true)) {
+    await db.collection(DRIVERS_COLLECTION).doc(driverId).update({
+      complianceBlocked: shouldBlock,
+      complianceStatus: overallStatus,
+      complianceCheckedAt: new Date().toISOString(),
+    });
   }
 
-  await driverRef.update(updates);
+  // Save alert record if anything to report
+  if (alerts.length > 0) {
+    const alertRecord = {
+      driverId,
+      driverName: driverData.name || '',
+      overallStatus,
+      alerts,
+      checkedAt: new Date().toISOString(),
+    };
+    await db.collection(COMPLIANCE_ALERTS_COLLECTION).doc(driverId).set(alertRecord, { merge: true });
+  }
 
-  return { blocked: shouldBlock, warnings };
+  return { driverId, overallStatus, alerts, blocked: shouldBlock };
 }
 
 /**
- * Run compliance check for ALL drivers.
- * Intended to be called from a Cloud Scheduler job daily.
+ * Run compliance check across ALL drivers.
+ * Called by a scheduled Cloud Function or admin endpoint.
+ * Blocks expired drivers, writes alerts for expiring ones.
  */
-async function runComplianceCheckAll() {
+async function runComplianceCheckForAllDrivers() {
   const snapshot = await db.collection(DRIVERS_COLLECTION).get();
   const results = [];
 
   for (const doc of snapshot.docs) {
     try {
-      const result = await checkAndEnforceDocumentCompliance(doc.id);
-      results.push({ driverId: doc.id, ...result });
+      const result = await checkAndNotifyCompliance(doc.id, doc.data());
+      results.push(result);
     } catch (err) {
       console.error(`Compliance check failed for driver ${doc.id}:`, err.message);
     }
   }
 
-  return results;
+  const summary = {
+    total: results.length,
+    valid: results.filter((r) => r.overallStatus === 'valid').length,
+    expiringSoon: results.filter((r) => r.overallStatus === 'expiring_soon').length,
+    expiringCritical: results.filter((r) => r.overallStatus === 'expiring_critical').length,
+    expired: results.filter((r) => r.overallStatus === 'expired').length,
+    blocked: results.filter((r) => r.blocked).length,
+  };
+
+  return { summary, results };
+}
+
+// ─── 5. JOB PRIORITY QUEUE ────────────────────────────────────────────────────
+
+/**
+ * Calculate a priority score for a job in the dispatch queue.
+ * Higher score = dispatched first.
+ *
+ * Factors:
+ *   +50  — urgent / emergency service
+ *   +30  — garage / onsite_repair
+ *   +20  — heavy equipment
+ *   +10  — standard tow
+ *   +1 per minute waiting (rewards jobs that have been waiting longer)
+ *   -10  — Others (custom — needs human review, lower priority)
+ */
+function calculateJobPriority(job) {
+  let score = 0;
+
+  const serviceType = (job.serviceType || '').toLowerCase();
+  const vehicleType = (job.vehicleType || '').toLowerCase();
+
+  // Service type base priority
+  if (job.garageUrgency === 'urgent' || serviceType === 'emergency') score += 50;
+  else if (serviceType === 'onsite_repair' || serviceType === 'garage') score += 30;
+  else if (serviceType === 'heavy_equipment') score += 20;
+  else if (serviceType === 'tow') score += 10;
+
+  // Custom/Others jobs go to admin review queue — slightly deprioritized
+  if (vehicleType === 'others' || job.customItem) score -= 10;
+
+  // Wait time bonus — 1 point per minute waiting
+  if (job.createdAt) {
+    const waitMinutes = Math.floor((Date.now() - new Date(job.createdAt).getTime()) / 60000);
+    score += Math.min(waitMinutes, 60); // cap at 60 bonus points
+  }
+
+  return score;
+}
+
+/**
+ * Get all pending jobs ordered by priority score.
+ * Highest score = most urgent = dispatched first.
+ */
+async function getPriorityQueue() {
+  const snapshot = await db.collection(JOBS_COLLECTION)
+    .where('status', '==', 'pending')
+    .get();
+
+  const jobs = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      ...data,
+      _priorityScore: calculateJobPriority(data),
+    };
+  });
+
+  jobs.sort((a, b) => b._priorityScore - a._priorityScore);
+
+  return jobs;
+}
+
+// ─── 6. AUTO-FLAG CUSTOM JOBS FOR ADMIN REVIEW ────────────────────────────────
+
+/**
+ * Flag a job with vehicleType='Others' or customItem for admin review.
+ * Admin can then manually assign or broadcast.
+ * @param {string} jobId
+ * @param {object} jobData
+ */
+async function flagJobForAdminReview(jobId, jobData) {
+  await db.collection(JOBS_COLLECTION).doc(jobId).update({
+    requiresAdminReview: true,
+    adminReviewReason: 'Custom vehicle/item type — system cannot auto-match driver.',
+    adminReviewAt: new Date().toISOString(),
+  });
+
+  // Write to admin_review_queue collection
+  await db.collection('admin_review_queue').doc(jobId).set({
+    jobId,
+    type: 'custom_job',
+    customItem: jobData.customItem || null,
+    customDetails: jobData.customDetails || null,
+    serviceType: jobData.serviceType || null,
+    userId: jobData.userId || null,
+    createdAt: jobData.createdAt || new Date().toISOString(),
+    flaggedAt: new Date().toISOString(),
+    status: 'pending_review',
+  });
+
+  return { flagged: true, jobId };
 }
 
 module.exports = {
-  logDisciplineEvent,
-  recordDriverLate,
-  recordDriverNoShow,
-  chargeCustomerNoShow,
-  unsuspendDriver,
-  checkAndEnforceDocumentCompliance,
-  runComplianceCheckAll,
-  NOSHOW_CHARGE_HALALA,
-  NOSHOW_WAIT_MINUTES,
-  SUSPENSION_WARNING_THRESHOLD,
+  applyNoShowPenalty,
+  issueLateWarning,
+  clearDriverSuspension,
+  checkAndNotifyCompliance,
+  runComplianceCheckForAllDrivers,
+  calculateJobPriority,
+  getPriorityQueue,
+  flagJobForAdminReview,
+  NO_SHOW_WAIT_FEE,
+  WARNINGS_BEFORE_SUSPEND,
 };

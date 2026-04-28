@@ -1,16 +1,18 @@
 /**
- * Job Controller — RoadResQ (Complete Rebuild)
+ * Job Controller — RoadResQ (v3.1.0)
  *
  * POST   /api/jobs                     → createJobHandler()
  * GET    /api/jobs                     → getJobsHandler()
+ * GET    /api/jobs/my-jobs             → getMyJobsHandler()   ← customer: all their jobs + status
  * GET    /api/jobs/available           → getAvailableJobsHandler()
  * GET    /api/jobs/price-estimate      → getPriceEstimateHandler()
  * GET    /api/jobs/service-info        → getServiceInfoHandler()
  * GET    /api/jobs/:id                 → getJobByIdHandler()
+ * GET    /api/jobs/:id/status          → getJobStatusHandler() ← real-time status + driver ETA
+ * GET    /api/jobs/:id/match           → matchDriversHandler()
  * PUT    /api/jobs/:id/accept          → acceptJobHandler()
  * PUT    /api/jobs/:id/status          → updateStatusHandler()
  * DELETE /api/jobs/:id/cancel          → cancelJobHandler()
- * GET    /api/jobs/:id/match           → matchDriversHandler()
  * PUT    /api/jobs/:id/rate-driver     → rateDriverHandler()
  */
 
@@ -120,6 +122,7 @@ const createJobHandler = async (req, res) => {
     }
 
     // Build a clear response: tell the customer what truck + equipment is coming
+    const constraints = job.vehicleType ? deriveJobConstraints(job.vehicleType) : {};
     const driverSummary = assignedDriver
       ? {
           id: assignedDriver.id,
@@ -137,12 +140,148 @@ const createJobHandler = async (req, res) => {
         }
       : null;
 
-    return success(res, { job, assignedDriver: driverSummary }, 201);
+    // Dispatch status: if no driver found, give a clear fallback explanation
+    const dispatchStatus = assignedDriver
+      ? {
+          dispatched: true,
+          message: 'A qualified driver has been assigned to your job.',
+        }
+      : {
+          dispatched: false,
+          message: job.requiresQuote
+            ? 'Your job requires a custom quote. A garage will review it and respond with a price.'
+            : `No driver is currently available for a ${constraints.vehicleLabel || job.vehicleType || 'your vehicle'} in your area. Your job has been queued and will be assigned as soon as a driver becomes available.`,
+          whatIsNeeded: job.requiresQuote ? null : {
+            truckType: constraints.requiredTruckType || job.requiredTruckType,
+            equipmentTypes: constraints.requiredEquipmentTypes || [],
+            isSpecialLoad: constraints.isSpecialLoad || false,
+          },
+          nextSteps: job.requiresQuote
+            ? 'Check the Quotes section for a response from the garage.'
+            : 'We will notify you as soon as a driver accepts your job. You can also check job status anytime.',
+        };
+
+    return success(res, { job, assignedDriver: driverSummary, dispatchStatus }, 201);
+
   } catch (err) {
     console.error('Create job error:', err);
     return error(res, 'Failed to create job.', 500);
   }
 };
+
+// ─── GET /api/jobs/my-jobs (← customer-facing) ─────────────────────────────
+
+/**
+ * Customer sees all their own jobs with current status, driver info, and ETA.
+ * Query: ?userId=xxx&status=pending (status optional)
+ *
+ * Fallback messages:
+ *  - no driver yet → explains what we’re waiting for
+ *  - quote pending → tells them to wait for garage response
+ *  - cancelled    → explains what happened
+ */
+const getMyJobsHandler = async (req, res) => {
+  const { userId, status } = req.query;
+  if (!userId) return error(res, 'userId is required.');
+
+  try {
+    const jobs = await getJobsByUser(userId, { status });
+
+    // Enrich each job with a customer-friendly status message
+    const enriched = jobs.map((job) => ({
+      ...job,
+      statusMessage: buildCustomerStatusMessage(job),
+      pricingDisplay: job.price ? `QR ${(job.price / 100).toFixed(2)}` : null,
+    }));
+
+    return success(res, { jobs: enriched, count: enriched.length });
+  } catch (err) {
+    console.error('Get my jobs error:', err);
+    return error(res, 'Failed to fetch your jobs.', 500);
+  }
+};
+
+// ─── GET /api/jobs/:id/status (← real-time single job) ──────────────────────
+
+/**
+ * Returns current status + driver ETA for a single job.
+ * Used by Flutter to power the live tracking screen.
+ */
+const getJobStatusHandler = async (req, res) => {
+  try {
+    const job = await getJobById(req.params.id);
+    if (!job) return error(res, 'Job not found.', 404);
+
+    let driver = null;
+    if (job.driverId) {
+      driver = await getDriverById(job.driverId);
+    }
+
+    return success(res, {
+      jobId: job.id,
+      status: job.status,
+      statusMessage: buildCustomerStatusMessage(job),
+      vehicleType: job.vehicleType,
+      vehicleLabel: job.vehicleLabel || job.vehicleType,
+      pickup: job.pickup,
+      drop: job.drop,
+      price: job.price,
+      pricingDisplay: job.price ? `QR ${(job.price / 100).toFixed(2)}` : null,
+      requiresQuote: job.requiresQuote || false,
+      assignedDriver: driver
+        ? {
+            id: driver.id,
+            name: driver.name,
+            phone: driver.phone || null,
+            truckType: driver.truckType,
+            vehicleModel: driver.vehicleModel || null,
+            rating: driver.rating || null,
+            lastLocation: driver.lastLocation || null,
+          }
+        : null,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    });
+  } catch (err) {
+    console.error('Get job status error:', err);
+    return error(res, 'Failed to fetch job status.', 500);
+  }
+};
+
+/**
+ * Build a human-readable status message for the customer.
+ * Covers all states including fallback cases.
+ */
+function buildCustomerStatusMessage(job) {
+  const STATUS_MESSAGES = {
+    pending: job.driverId
+      ? 'A driver has been assigned. Waiting for confirmation.'
+      : 'Looking for an available driver near you…',
+    assigned: 'A driver has been assigned and will contact you shortly.',
+    accepted: 'Driver accepted your job and is preparing to depart.',
+    in_progress: 'Your vehicle is being transported.',
+    on_site: 'Driver has arrived at the pickup location.',
+    at_garage: 'Your vehicle has arrived at the garage.',
+    completed: 'Job completed. Thank you for using RoadResQ!',
+    cancelled: 'This job was cancelled.',
+    quote_pending:
+      'Your quote request has been received. A garage will respond shortly with a price.',
+    quoted:
+      'A garage has sent you a price. Please accept or reject the quote in the Quotes section.',
+  };
+
+  // Extra context for pending with no driver
+  if (job.status === 'pending' && !job.driverId) {
+    if (job.requiresQuote) {
+      return 'Waiting for a garage to review your request and send a quote.';
+    }
+    if (job.vehicleType) {
+      return `Searching for a qualified driver to transport your ${job.vehicleType}. This may take a few minutes.`;
+    }
+  }
+
+  return STATUS_MESSAGES[job.status] || `Job status: ${job.status}`;
+}
 
 // ─── GET /api/jobs ────────────────────────────────────────────────────────────
 
@@ -422,13 +561,16 @@ const rateDriverHandler = async (req, res) => {
 module.exports = {
   createJobHandler,
   getJobsHandler,
+  getMyJobsHandler,
   getAvailableJobsHandler,
   getPriceEstimateHandler,
   getServiceInfoHandler,
   getJobByIdHandler,
+  getJobStatusHandler,
   matchDriversHandler,
   acceptJobHandler,
   updateStatusHandler,
   cancelJobHandler,
   rateDriverHandler,
 };
+

@@ -49,17 +49,17 @@ app.use('/api/discipline', disciplineRoutes);      // Week 4: driver discipline 
 app.get('/', (_req, res) => {
   res.json({
     service: 'RoadResQ API',
-    version: '3.0.0', // Week 4: Intelligence + Safety + Logistics
+    version: '4.0.0',
     status: 'running',
     project: 'roadresq-bd6b0',
     region: 'me-central1 (Doha, Qatar)',
     endpoints: {
       auth: '/api/auth/register | /api/auth/login',
-      jobs: '/api/jobs | /api/jobs/available | /api/jobs/price-estimate | /api/jobs/service-info',
-      drivers: '/api/drivers | /api/drivers/truck-types | /api/drivers/status',
-      quotes: '/api/quotes',
-      garageRequests: '/api/garage-requests (Week 4: on-site repair bidding)',
-      discipline: '/api/discipline (Week 4: driver discipline + compliance)',
+      jobs: '/api/jobs | /api/jobs/my-jobs | /api/jobs/:id/status | /api/jobs/available | /api/jobs/price-estimate | /api/jobs/service-info',
+      drivers: '/api/drivers | /api/drivers/truck-types | /api/drivers/:id/status | /api/drivers/:id/online | /api/drivers/:id/offline',
+      quotes: '/api/quotes | /api/quotes/my-quotes | /api/quotes/:id/bids | /api/quotes/:id/bid',
+      garageRequests: '/api/garage-requests (on-site repair: broadcast → estimate → accept)',
+      discipline: '/api/discipline (warnings, compliance, safety checklists, priority queue, admin-review)',
     },
     serviceStructure: {
       '1. Tow': 'Sedan / SUV / 4x4 / Motorcycle / ATV / Others',
@@ -74,12 +74,20 @@ app.get('/', (_req, res) => {
       'Basement / restricted access height filter (clearanceHeightMm)',
       'Gate pass requirement enforcement',
       'Expert-first routing for special loads (yearsExperience priority)',
-      'Driver discipline: 3-strike suspension system',
+      'Driver discipline: 3-strike suspension + no-show fee (QR 50)',
       'Customer no-show charge: QR 50.00 (5000 halala)',
-      'Document compliance blocking (license, insurance, visa, roadworthiness)',
+      'Document compliance: 30-day notify, 7-day critical alert, expired = block',
       'Integer halala pricing (5000 = QR 50.00) across all services',
       'On-site repair estimate bidding (first-accept-wins, 15min auto-cancel)',
+      'Quote bidding system: multi-driver bids, best price highlighted, auto job creation',
       '"Others" dynamic input across all 4 service categories',
+      'Job priority queue: urgency + wait time scoring',
+      'Admin review queue for custom/Others jobs',
+      'Pre-trip driver safety checklist (all items must pass before job starts)',
+      'Customer safety confirmation (3 safety items before confirmation)',
+      'Traffic buffer ETA: +25% during Qatar peak hours',
+      'Driver online/offline toggle with compliance gating',
+      'Real-time dispatch: customer my-jobs + live job status endpoint',
     ],
   });
 });
@@ -109,11 +117,15 @@ app.use((err, _req, res, _next) => {
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚗 RoadResQ API v3.0.0 — Week 4 running on http://0.0.0.0:${PORT}`);
+    console.log(`\n🚗 RoadResQ API v4.0.0 — Week 4 Complete running on http://0.0.0.0:${PORT}`);
     console.log(`   Health check:       http://0.0.0.0:${PORT}/`);
-    console.log(`   Jobs:               http://0.0.0.0:${PORT}/api/jobs`);
+    console.log(`   Jobs (customer):    http://0.0.0.0:${PORT}/api/jobs/my-jobs`);
+    console.log(`   Job status:         http://0.0.0.0:${PORT}/api/jobs/:id/status`);
     console.log(`   Garage requests:    http://0.0.0.0:${PORT}/api/garage-requests`);
     console.log(`   Discipline:         http://0.0.0.0:${PORT}/api/discipline`);
+    console.log(`   Priority queue:     http://0.0.0.0:${PORT}/api/discipline/priority-queue`);
+    console.log(`   Compliance check:   http://0.0.0.0:${PORT}/api/discipline/compliance-check`);
+    console.log(`   Quote bidding:      http://0.0.0.0:${PORT}/api/quotes/:id/bids`);
     console.log(`   Service info:       http://0.0.0.0:${PORT}/api/jobs/service-info\n`);
   });
 }

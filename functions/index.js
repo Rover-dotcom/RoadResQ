@@ -1,5 +1,5 @@
 /**
- * RoadResQ — Firebase Cloud Functions Entry Point (Week 4 / v3.0.0)
+ * RoadResQ — Firebase Cloud Functions Entry Point (Week 4 / v4.0.0)
  * Region: me-central1 (Doha, Qatar)
  * URL: https://me-central1-roadresq-bd6b0.cloudfunctions.net/api
  */
@@ -56,17 +56,17 @@ app.use('/api/discipline',      disciplineRoutes); // Week 4
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => res.json({
   service: 'RoadResQ API',
-  version: '3.0.0',          // Week 4: Intelligence + Safety + Logistics
+  version: '4.0.0',
   status: 'running',
   region: 'me-central1 (Doha, Qatar)',
   project: 'roadresq-bd6b0',
   endpoints: {
     auth:           '/api/auth/register | /api/auth/login',
-    jobs:           '/api/jobs | /api/jobs/available | /api/jobs/price-estimate | /api/jobs/service-info',
-    drivers:        '/api/drivers | /api/drivers/truck-types | /api/drivers/status',
-    quotes:         '/api/quotes',
-    garageRequests: '/api/garage-requests (on-site repair bidding)',
-    discipline:     '/api/discipline (driver discipline + compliance)',
+    jobs:           '/api/jobs | /api/jobs/my-jobs | /api/jobs/:id/status | /api/jobs/available | /api/jobs/price-estimate | /api/jobs/service-info',
+    drivers:        '/api/drivers | /api/drivers/truck-types | /api/drivers/:id/status | /api/drivers/:id/online | /api/drivers/:id/offline',
+    quotes:         '/api/quotes | /api/quotes/my-quotes | /api/quotes/:id/bids | /api/quotes/:id/bid',
+    garageRequests: '/api/garage-requests (on-site repair: broadcast → estimate → accept)',
+    discipline:     '/api/discipline (warnings, compliance, safety checklists, priority queue, admin-review)',
   },
   week4Features: [
     '10km geo-radius matching (haversine)',
@@ -74,12 +74,20 @@ app.get('/', (_req, res) => res.json({
     'Basement/restricted height filter (clearanceHeightMm)',
     'Gate pass enforcement (requiresGatePass)',
     'Expert-first routing (yearsExperience priority)',
-    '3-strike driver suspension system',
+    'Driver discipline: 3-strike suspension + no-show fee (QR 50)',
     'Customer no-show charge: QR 50.00 (5000 halala)',
-    'Document compliance blocking (license / insurance / visa / roadworthiness)',
+    'Document compliance: 30-day notify, 7-day critical, expired = block',
     'Integer halala pricing (5000 = QR 50.00)',
     'On-site repair estimate bidding (first-accept-wins, 15min auto-cancel)',
+    'Quote bidding: multi-driver bids, price-sorted, best highlighted, auto job creation',
     '"Others" dynamic input across all 4 service categories',
+    'Job priority queue: urgency + wait time scoring',
+    'Admin review queue for custom/Others jobs',
+    'Pre-trip driver safety checklist (6 mandatory items)',
+    'Customer safety confirmation (3 mandatory items)',
+    'Traffic buffer ETA: +25% during Qatar peak hours',
+    'Driver online/offline toggle with compliance gating',
+    'Real-time dispatch: customer my-jobs + live job status',
   ],
 }));
 

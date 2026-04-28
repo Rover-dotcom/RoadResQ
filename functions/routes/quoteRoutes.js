@@ -4,10 +4,14 @@ const router = express.Router();
 const {
   submitQuoteHandler,
   getQuotesHandler,
+  getMyQuotesHandler,
   getQuoteByIdHandler,
   respondToQuoteHandler,
   acceptQuoteByCustomerHandler,
   rejectQuoteByCustomerHandler,
+  submitQuoteBidHandler,
+  getQuoteBidsHandler,
+  acceptQuoteBidHandler,
 } = require('../controllers/quoteController');
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -16,7 +20,7 @@ const submitQuoteValidation = [
   body('userId').notEmpty().withMessage('userId is required'),
   body('pickup').notEmpty().withMessage('pickup location is required'),
   body('drop').notEmpty().withMessage('drop location is required'),
-  body('itemDescription').notEmpty().withMessage('itemDescription is required — describe what needs to be transported/repaired'),
+  body('itemDescription').notEmpty().withMessage('itemDescription is required'),
   body('serviceType')
     .optional()
     .isIn(['garage', 'heavy_equipment', 'quote_industrial'])
@@ -28,18 +32,36 @@ const submitQuoteValidation = [
   body('estimatedWeight')
     .optional()
     .isFloat({ min: 0 })
-    .withMessage('estimatedWeight must be a positive number (in kg)'),
+    .withMessage('estimatedWeight must be a positive number (kg)'),
+];
+
+const respondValidation = [
+  body('garageId').notEmpty().withMessage('garageId is required — only garages can respond to quotes'),
+  body('quotedPrice')
+    .isInt({ min: 1 })
+    .withMessage('quotedPrice must be a positive integer in halala (e.g. 15000 = QR 150.00)'),
 ];
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-router.post('/', submitQuoteValidation, submitQuoteHandler);     // Submit quote
-router.get('/', getQuotesHandler);                               // Get all / by userId / by status
-router.get('/:id', getQuoteByIdHandler);                        // Single quote
-router.put('/:id/respond', [
-  body('quotedPrice').isFloat({ min: 1 }).withMessage('quotedPrice must be a positive number'),
-], respondToQuoteHandler);                                       // Admin responds
-router.put('/:id/accept', acceptQuoteByCustomerHandler);         // Customer accepts
-router.put('/:id/reject', rejectQuoteByCustomerHandler);         // Customer rejects
+// IMPORTANT: specific paths BEFORE :id param
+router.get('/my-quotes', getMyQuotesHandler);                          // Customer: their quotes + status
+
+router.post('/', submitQuoteValidation, submitQuoteHandler);           // Submit new quote request
+router.get('/', getQuotesHandler);                                     // Admin read-only report: all quotes
+
+router.get('/:id', getQuoteByIdHandler);                              // Single quote details
+router.put('/:id/respond', respondValidation, respondToQuoteHandler); // Garage responds with price
+router.put('/:id/accept', acceptQuoteByCustomerHandler);              // Customer accepts
+router.put('/:id/reject', rejectQuoteByCustomerHandler);              // Customer rejects
+
+// ─── Bidding System (Industrial / Heavy Equipment) ────────────────────────────
+// POST /api/quotes/:id/bid              — driver/garage submits bid (price + ETA + equipment)
+// GET  /api/quotes/:id/bids             — customer views all bids (sorted by price, highlights best)
+// PUT  /api/quotes/:id/bids/:bidId/accept — customer accepts winning bid → creates linked job
+
+router.post('/:id/bid', submitQuoteBidHandler);
+router.get('/:id/bids', getQuoteBidsHandler);
+router.put('/:id/bids/:bidId/accept', acceptQuoteBidHandler);
 
 module.exports = router;

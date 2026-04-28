@@ -5,7 +5,10 @@ const {
   createDriverHandler,
   getDriversHandler,
   getDriverByIdHandler,
+  getDriverStatusHandler,
   setStatusHandler,
+  goOnlineHandler,
+  goOfflineHandler,
   approveDriverHandler,
   updateDriverHandler,
   getTruckTypesHandler,
@@ -26,16 +29,23 @@ const createDriverValidation = [
 ];
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+// IMPORTANT: specific paths BEFORE parameterized paths (:id)
 
 router.get('/truck-types', getTruckTypesHandler);          // GET /api/drivers/truck-types
 
 router.post('/', createDriverValidation, createDriverHandler);  // POST /api/drivers
 router.get('/', getDriversHandler);                             // GET  /api/drivers?truckType=&isOnline=&isApproved=
 
+// Legacy: set online/offline via body { driverUid, isOnline }
 router.put('/status', [
   body('driverUid').notEmpty().withMessage('driverUid is required'),
   body('isOnline').isBoolean().withMessage('isOnline must be true or false'),
 ], setStatusHandler);
+
+// Per-driver routes (IMPORTANT: specific sub-paths before bare /:id)
+router.get('/:id/status', getDriverStatusHandler);         // GET  /api/drivers/:id/status (full status + compliance)
+router.put('/:id/online', goOnlineHandler);                // PUT  /api/drivers/:id/online  { lastLocation? }
+router.put('/:id/offline', goOfflineHandler);              // PUT  /api/drivers/:id/offline
 
 router.get('/:id', getDriverByIdHandler);                  // GET /api/drivers/:id
 router.put('/:id/approve', [

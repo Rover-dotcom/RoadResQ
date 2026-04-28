@@ -1,12 +1,16 @@
 /**
- * Driver Controller — RoadResQ (Updated)
+ * Driver Controller — RoadResQ (v3.1.0)
  *
- * POST  /api/drivers              → createDriverHandler()
- * GET   /api/drivers              → getDriversHandler()
- * GET   /api/drivers/:id          → getDriverByIdHandler()
- * PUT   /api/drivers/status       → setStatusHandler()
- * PUT   /api/drivers/:id/approve  → approveDriverHandler()
- * PUT   /api/drivers/:id          → updateDriverHandler()
+ * POST  /api/drivers                  → createDriverHandler()
+ * GET   /api/drivers                  → getDriversHandler()
+ * GET   /api/drivers/truck-types      → getTruckTypesHandler()
+ * GET   /api/drivers/:id              → getDriverByIdHandler()
+ * GET   /api/drivers/:id/status       → getDriverStatusHandler()  ← full status + compliance
+ * PUT   /api/drivers/status           → setStatusHandler()        ← legacy bulk update
+ * PUT   /api/drivers/:id/online       → goOnlineHandler()         ← driver goes online
+ * PUT   /api/drivers/:id/offline      → goOfflineHandler()        ← driver goes offline
+ * PUT   /api/drivers/:id/approve      → approveDriverHandler()
+ * PUT   /api/drivers/:id              → updateDriverHandler()
  */
 
 const { validationResult } = require('express-validator');
@@ -222,11 +226,154 @@ const getTruckTypesHandler = (req, res) => {
   return success(res, { truckTypes: truckTypeLabels, serviceTypes: VALID_SERVICE_TYPES });
 };
 
+// ─── GET /api/drivers/:id/status ───────────────────────────────────
+
+/**
+ * Full driver status snapshot:
+ *   - isOnline, isAvailable, isApproved
+ *   - activeJob reference
+ *   - document compliance summary
+ *   - isSuspended
+ */
+const getDriverStatusHandler = async (req, res) => {
+  try {
+    const driver = await getDriverById(req.params.id);
+    if (!driver) return error(res, 'Driver not found.', 404);
+
+    const now = new Date();
+
+    // Build compliance summary
+    const compliance = {
+      licenseExpired: driver.licenseExpiry ? new Date(driver.licenseExpiry) < now : false,
+      insuranceExpired: driver.insuranceExpiry ? new Date(driver.insuranceExpiry) < now : false,
+      visaExpired: driver.visaExpiry ? new Date(driver.visaExpiry) < now : false,
+      roadworthinessExpired: driver.roadworthinessExpiry ? new Date(driver.roadworthinessExpiry) < now : false,
+    };
+    const hasExpiredDocs = Object.values(compliance).some(Boolean);
+
+    return success(res, {
+      id: driver.id,
+      name: driver.name,
+      truckType: driver.truckType,
+      vehicleModel: driver.vehicleModel || null,
+      equipmentTypes: driver.equipmentTypes || [],
+      maxCapacityKg: driver.maxCapacityKg || null,
+      rating: driver.rating || null,
+      completedJobs: driver.completedJobs || 0,
+      yearsExperience: driver.yearsExperience || 0,
+
+      // Live status
+      isOnline: driver.isOnline || false,
+      isAvailable: driver.isAvailable || false,
+      isApproved: driver.isApproved || false,
+      isSuspended: driver.isSuspended || false,
+      complianceBlocked: driver.complianceBlocked || false,
+      activeJobId: driver.activeJobId || null,
+
+      // Can this driver take jobs right now?
+      canTakeJobs: !!(driver.isOnline && driver.isAvailable && driver.isApproved
+        && !driver.isSuspended && !driver.complianceBlocked && !hasExpiredDocs),
+
+      compliance,
+      hasExpiredDocs,
+
+      lastLocation: driver.lastLocation || null,
+    });
+  } catch (err) {
+    console.error('Get driver status error:', err);
+    return error(res, 'Failed to fetch driver status.', 500);
+  }
+};
+
+// ─── PUT /api/drivers/:id/online ────────────────────────────────────
+
+/**
+ * Driver goes ONLINE — marks isOnline: true and isAvailable: true
+ * Optional: lastLocation update { lat, lng }
+ */
+const goOnlineHandler = async (req, res) => {
+  try {
+    const driver = await getDriverById(req.params.id);
+    if (!driver) return error(res, 'Driver not found.', 404);
+
+    if (!driver.isApproved) {
+      return error(res, 'Your account has not been approved yet. Contact support.', 403);
+    }
+    if (driver.isSuspended) {
+      return error(res, 'Your account is suspended. Contact support.', 403);
+    }
+    if (driver.complianceBlocked) {
+      return error(res, 'Your account is blocked due to expired documents. Please renew and contact support.', 403);
+    }
+
+    const updates = {
+      isOnline: true,
+      isAvailable: true,
+      lastOnlineAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Optional: update location when going online
+    if (req.body.lastLocation) {
+      updates.lastLocation = req.body.lastLocation;
+    }
+
+    await updateDriver(req.params.id, updates);
+
+    return success(res, {
+      driverId: req.params.id,
+      isOnline: true,
+      isAvailable: true,
+      message: 'You are now online and available for jobs.',
+    });
+  } catch (err) {
+    console.error('Go online error:', err);
+    return error(res, 'Failed to go online.', 500);
+  }
+};
+
+// ─── PUT /api/drivers/:id/offline ──────────────────────────────────
+
+/**
+ * Driver goes OFFLINE — marks isOnline: false and isAvailable: false
+ * If the driver has an active job, they cannot go offline.
+ */
+const goOfflineHandler = async (req, res) => {
+  try {
+    const driver = await getDriverById(req.params.id);
+    if (!driver) return error(res, 'Driver not found.', 404);
+
+    if (driver.activeJobId) {
+      return error(res, `You have an active job (${driver.activeJobId}). Complete or cancel it before going offline.`, 409);
+    }
+
+    await updateDriver(req.params.id, {
+      isOnline: false,
+      isAvailable: false,
+      lastOfflineAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    return success(res, {
+      driverId: req.params.id,
+      isOnline: false,
+      isAvailable: false,
+      message: 'You are now offline. You will not receive new job assignments.',
+    });
+  } catch (err) {
+    console.error('Go offline error:', err);
+    return error(res, 'Failed to go offline.', 500);
+  }
+};
+
 module.exports = {
   createDriverHandler,
   getDriversHandler,
   getDriverByIdHandler,
+  getDriverStatusHandler,
   setStatusHandler,
+  goOnlineHandler,
+  goOfflineHandler,
   approveDriverHandler,
   updateDriverHandler,
   getTruckTypesHandler,

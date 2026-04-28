@@ -421,6 +421,235 @@ const rejectQuoteByCustomerHandler = async (req, res) => {
   }
 };
 
+// ─── POST /api/quotes/:id/bid ─────────────────────────────────────────────────
+
+/**
+ * Driver/Garage submits a BID on an industrial/heavy quote.
+ * Multiple bids allowed — customer compares and picks the best.
+ *
+ * Used for:
+ *   - Quote Industrial (Precast, Container, Generator, Others)
+ *   - Heavy Equipment jobs with quote_required
+ *
+ * Body: { driverId OR garageId, bidderName, price, etaMinutes, equipment, notes }
+ *
+ * Stored in subcollection: quote_requests/{quoteId}/bids
+ */
+const submitQuoteBidHandler = async (req, res) => {
+  const { id: quoteId } = req.params;
+  const {
+    driverId,
+    garageId,
+    bidderName,
+    price,         // integer halala — e.g. 120000 = QR 1200.00
+    etaMinutes,
+    equipment,     // e.g. ['boom_truck', 'flatbed']
+    notes,
+    rating,        // bidder's rating (denormalized for display)
+    vehicleModel,
+  } = req.body;
+
+  if (!price || price <= 0) return error(res, 'price is required and must be greater than 0.', 400);
+  if (!etaMinutes) return error(res, 'etaMinutes is required.', 400);
+  if (!driverId && !garageId) return error(res, 'driverId or garageId is required.', 400);
+
+  try {
+    const quoteSnap = await db.collection(COLLECTION).doc(quoteId).get();
+    if (!quoteSnap.exists) return error(res, 'Quote not found.', 404);
+
+    const quote = quoteSnap.data();
+    if (!['pending', 'collecting_bids'].includes(quote.status)) {
+      return error(res, `Cannot bid on a quote with status '${quote.status}'.`, 409);
+    }
+
+    const bidderId = driverId || garageId;
+    const bidId = `${bidderId}_${Date.now()}`;
+
+    const bid = {
+      id: bidId,
+      quoteId,
+      driverId: driverId || null,
+      garageId: garageId || null,
+      bidderId,
+      bidderName: bidderName || 'Unknown',
+      bidderType: driverId ? 'driver' : 'garage',
+      price,
+      priceDisplay: `QR ${(price / 100).toFixed(2)}`,
+      etaMinutes,
+      equipment: equipment || [],
+      notes: notes || null,
+      rating: rating || null,
+      vehicleModel: vehicleModel || null,
+      status: 'pending',             // pending → accepted | rejected
+      submittedAt: new Date().toISOString(),
+    };
+
+    // Write to bids subcollection
+    await db.collection(COLLECTION).doc(quoteId)
+      .collection('bids').doc(bidId).set(bid);
+
+    // Update quote status to show it has bids
+    await db.collection(COLLECTION).doc(quoteId).update({
+      status: 'collecting_bids',
+      updatedAt: new Date().toISOString(),
+    });
+
+    return success(res, {
+      bid,
+      message: `Bid of ${bid.priceDisplay} submitted. Customer will review your bid.`,
+    }, 201);
+  } catch (err) {
+    console.error('Submit bid error:', err);
+    return error(res, 'Failed to submit bid.', 500);
+  }
+};
+
+// ─── GET /api/quotes/:id/bids ─────────────────────────────────────────────────
+
+/**
+ * Customer views all bids on their quote.
+ * Sorted by: price ASC, then ETA ASC (best value first).
+ * Highlights: lowest price and fastest arrival.
+ *
+ * Card fields: bidderName | price | ETA | rating | equipment
+ */
+const getQuoteBidsHandler = async (req, res) => {
+  const { id: quoteId } = req.params;
+
+  try {
+    const quoteSnap = await db.collection(COLLECTION).doc(quoteId).get();
+    if (!quoteSnap.exists) return error(res, 'Quote not found.', 404);
+
+    const bidsSnap = await db.collection(COLLECTION).doc(quoteId)
+      .collection('bids')
+      .where('status', '==', 'pending')
+      .get();
+
+    const bids = bidsSnap.docs.map((doc) => doc.data());
+
+    // Sort: price ASC
+    bids.sort((a, b) => a.price - b.price);
+
+    // Highlight best bids
+    const lowestPrice = bids.length > 0 ? bids[0].price : null;
+    const fastestEta = bids.length > 0 ? Math.min(...bids.map((b) => b.etaMinutes)) : null;
+
+    const enriched = bids.map((bid) => ({
+      ...bid,
+      isBestPrice: bid.price === lowestPrice,
+      isFastestArrival: bid.etaMinutes === fastestEta,
+    }));
+
+    return success(res, {
+      quoteId,
+      bidCount: enriched.length,
+      bids: enriched,
+      lowestPriceDisplay: lowestPrice ? `QR ${(lowestPrice / 100).toFixed(2)}` : null,
+      fastestEtaMinutes: fastestEta,
+      message: enriched.length > 0
+        ? `${enriched.length} bid(s) available. Compare and accept the best offer.`
+        : 'No bids yet. Waiting for drivers/garages to submit their offers.',
+    });
+  } catch (err) {
+    console.error('Get bids error:', err);
+    return error(res, 'Failed to fetch bids.', 500);
+  }
+};
+
+// ─── PUT /api/quotes/:id/bids/:bidId/accept ───────────────────────────────────
+
+/**
+ * Customer accepts a specific bid.
+ * Rejects all other bids on this quote automatically.
+ * Creates a linked job with the winning driver/garage.
+ */
+const acceptQuoteBidHandler = async (req, res) => {
+  const { id: quoteId, bidId } = req.params;
+
+  try {
+    const quoteSnap = await db.collection(COLLECTION).doc(quoteId).get();
+    if (!quoteSnap.exists) return error(res, 'Quote not found.', 404);
+    const quote = quoteSnap.data();
+
+    if (quote.status === 'accepted_by_customer') {
+      return error(res, 'A bid has already been accepted for this quote.', 409);
+    }
+
+    const bidSnap = await db.collection(COLLECTION).doc(quoteId)
+      .collection('bids').doc(bidId).get();
+    if (!bidSnap.exists) return error(res, 'Bid not found.', 404);
+    const bid = bidSnap.data();
+
+    const now = new Date().toISOString();
+
+    // Accept the winning bid
+    await db.collection(COLLECTION).doc(quoteId)
+      .collection('bids').doc(bidId).update({ status: 'accepted', acceptedAt: now });
+
+    // Reject all other bids
+    const allBids = await db.collection(COLLECTION).doc(quoteId)
+      .collection('bids').where('status', '==', 'pending').get();
+    const rejectPromises = allBids.docs
+      .filter((d) => d.id !== bidId)
+      .map((d) => d.ref.update({ status: 'rejected', rejectedAt: now }));
+    await Promise.all(rejectPromises);
+
+    // Create linked job
+    const { createJob } = require('../models/jobModel');
+    const { deriveJobConstraints } = require('../utils/serviceEngine');
+    const constraints = quote.vehicleType ? deriveJobConstraints(quote.vehicleType) : {};
+
+    const jobData = {
+      userId: quote.userId,
+      serviceType: quote.serviceType || 'quote_industrial',
+      vehicleType: quote.vehicleType || null,
+      pickup: quote.pickup,
+      drop: quote.drop,
+      pickupCoords: quote.pickupCoords || null,
+      status: 'pending',
+      price: bid.price,
+      priceDisplay: bid.priceDisplay,
+      quotedPrice: bid.price,
+      estimatedETA: { etaMinutes: bid.etaMinutes },
+      linkedQuoteId: quoteId,
+      linkedBidId: bidId,
+      assignedGarageId: bid.garageId || null,
+      driverId: bid.driverId || null,
+      itemDescription: quote.itemDescription || null,
+      customItem: quote.customItem || null,
+      dimensions: quote.dimensions || null,
+      estimatedWeight: quote.estimatedWeight || null,
+      requiredEquipmentTypes: constraints.requiredEquipmentTypes || [],
+      isSpecialLoad: constraints.isSpecialLoad || false,
+      source: 'bid_accepted',
+    };
+
+    const linkedJob = await createJob(jobData);
+
+    // Update quote
+    await db.collection(COLLECTION).doc(quoteId).update({
+      status: 'accepted_by_customer',
+      acceptedBidId: bidId,
+      acceptedBidderId: bid.bidderId,
+      acceptedBidderName: bid.bidderName,
+      acceptedPrice: bid.price,
+      acceptedPriceDisplay: bid.priceDisplay,
+      linkedJobId: linkedJob.id,
+      updatedAt: now,
+    });
+
+    return success(res, {
+      quoteId,
+      acceptedBid: bid,
+      linkedJobId: linkedJob.id,
+      message: `Bid from ${bid.bidderName} accepted. Job created and driver will be dispatched.`,
+    });
+  } catch (err) {
+    console.error('Accept bid error:', err);
+    return error(res, 'Failed to accept bid.', 500);
+  }
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildQuoteStatusMessage(quote) {
@@ -429,6 +658,8 @@ function buildQuoteStatusMessage(quote) {
       return quote.broadcastCount > 0
         ? `Waiting for a garage to respond. Your request was sent to ${quote.broadcastCount} nearby garage(s).`
         : 'Your quote request is pending. A garage will review it shortly.';
+    case 'collecting_bids':
+      return 'Bids are being collected. Review available bids and accept the best offer.';
     case 'quoted':
       return `A garage (${quote.respondedByName || 'unknown'}) has sent you a price of ${quote.quotedPriceDisplay}. Please accept or reject.`;
     case 'accepted_by_customer':
@@ -453,7 +684,7 @@ async function findNearbyGarages(coords, radiusKm = 15) {
     if (!coords || !coords.lat) return garages;
 
     return garages.filter((garage) => {
-      if (!garage.location?.lat) return true; // include if no location
+      if (!garage.location?.lat) return true;
       const dist = haversineDistanceKm(
         coords.lat, coords.lng,
         garage.location.lat, garage.location.lng,
@@ -474,4 +705,8 @@ module.exports = {
   respondToQuoteHandler,
   acceptQuoteByCustomerHandler,
   rejectQuoteByCustomerHandler,
+  // Bidding system
+  submitQuoteBidHandler,
+  getQuoteBidsHandler,
+  acceptQuoteBidHandler,
 };

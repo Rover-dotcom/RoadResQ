@@ -4,10 +4,12 @@ const router = express.Router();
 const {
   createJobHandler,
   getJobsHandler,
+  getMyJobsHandler,
   getAvailableJobsHandler,
   getPriceEstimateHandler,
   getServiceInfoHandler,
   getJobByIdHandler,
+  getJobStatusHandler,
   matchDriversHandler,
   acceptJobHandler,
   updateStatusHandler,
@@ -36,21 +38,22 @@ const createJobValidation = [
 ];
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-
 // IMPORTANT: specific paths BEFORE parameterized paths (:id)
 
-// Catalog / Info endpoints
-router.get('/service-info', getServiceInfoHandler);           // All service types + pricing
-router.get('/price-estimate', getPriceEstimateHandler);      // GET /api/jobs/price-estimate?vehicleType=&distanceKm=
-router.get('/available', getAvailableJobsHandler);           // GET /api/jobs/available?truckType=&serviceType=
+// Catalog / Info
+router.get('/service-info', getServiceInfoHandler);         // All service types + pricing catalog
+router.get('/price-estimate', getPriceEstimateHandler);    // ?vehicleType=Sedan&distanceKm=12
+router.get('/available', getAvailableJobsHandler);         // ?truckType=standard_tow&serviceType=tow (driver use)
+router.get('/my-jobs', getMyJobsHandler);                  // ?userId=xxx&status=pending (customer use)
 
 // CRUD
-router.post('/', createJobValidation, createJobHandler);     // POST  /api/jobs
-router.get('/', getJobsHandler);                             // GET   /api/jobs?userId=|driverId=|status=
+router.post('/', createJobValidation, createJobHandler);   // POST /api/jobs
+router.get('/', getJobsHandler);                           // GET  /api/jobs?userId=|driverId=|status=
 
 // Job by ID
-router.get('/:id', getJobByIdHandler);                       // GET   /api/jobs/:id
-router.get('/:id/match', matchDriversHandler);               // GET   /api/jobs/:id/match (list matching drivers)
+router.get('/:id', getJobByIdHandler);                     // GET /api/jobs/:id (full details)
+router.get('/:id/status', getJobStatusHandler);            // GET /api/jobs/:id/status (live status + driver ETA)
+router.get('/:id/match', matchDriversHandler);             // GET /api/jobs/:id/match (matching drivers list)
 
 // Job actions
 router.put('/:id/accept', [
@@ -65,6 +68,6 @@ router.put('/:id/rate-driver', [
   body('rating').isFloat({ min: 1, max: 5 }).withMessage('rating must be 1–5'),
 ], rateDriverHandler);
 
-router.delete('/:id/cancel', cancelJobHandler);              // DELETE /api/jobs/:id/cancel
+router.delete('/:id/cancel', cancelJobHandler);            // DELETE /api/jobs/:id/cancel
 
 module.exports = router;
