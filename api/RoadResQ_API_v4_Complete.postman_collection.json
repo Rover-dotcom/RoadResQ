@@ -1,28 +1,61 @@
 {
   "info": {
-    "name": "RoadResQ API v4 — Complete",
-    "description": "RoadResQ logistics platform — All endpoints. Base URL: https://api-h6acdw3itq-ww.a.run.app\n\nKey flows:\n1. Jobs: Customer creates job → auto-dispatch → driver accepts → status updates\n2. Quotes: Customer submits → Garage responds with price → Customer accepts → Job created\n3. Garage: Customer creates repair request → Garages bid → Customer accepts estimate\n4. Drivers: Register → Approve → Go Online → Accept Jobs",
+    "name": "RoadResQ API v4 \u2014 Complete",
+    "description": "RoadResQ logistics platform \u2014 All endpoints. Base URL: https://api-h6acdw3itq-ww.a.run.app\n\nKey flows:\n1. Jobs: Customer creates job \u2192 auto-dispatch \u2192 driver accepts \u2192 status updates\n2. Quotes: Customer submits \u2192 Garage responds with price \u2192 Customer accepts \u2192 Job created\n3. Garage: Customer creates repair request \u2192 Garages bid \u2192 Customer accepts estimate\n4. Drivers: Register \u2192 Approve \u2192 Go Online \u2192 Accept Jobs\n5. Discipline: No-show fees, warnings, safety checklists, compliance\n6. Bidding: Multi-driver bids on industrial quotes, customer picks best",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "4.0.0"
   },
   "variable": [
-    { "key": "base_url", "value": "https://api-h6acdw3itq-ww.a.run.app", "type": "string" },
-    { "key": "userId", "value": "user_001", "type": "string" },
-    { "key": "driverId", "value": "driver_001", "type": "string" },
-    { "key": "jobId", "value": "job_001", "type": "string" },
-    { "key": "quoteId", "value": "quote_001", "type": "string" },
-    { "key": "garageRequestId", "value": "garage_001", "type": "string" },
-    { "key": "garageId", "value": "garage_A1", "type": "string" }
+    {
+      "key": "base_url",
+      "value": "https://api-h6acdw3itq-ww.a.run.app",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user_001",
+      "type": "string"
+    },
+    {
+      "key": "driverId",
+      "value": "driver_001",
+      "type": "string"
+    },
+    {
+      "key": "jobId",
+      "value": "job_001",
+      "type": "string"
+    },
+    {
+      "key": "quoteId",
+      "value": "quote_001",
+      "type": "string"
+    },
+    {
+      "key": "garageRequestId",
+      "value": "garage_001",
+      "type": "string"
+    },
+    {
+      "key": "garageId",
+      "value": "garage_A1",
+      "type": "string"
+    }
   ],
   "item": [
     {
-      "name": "🔐 Auth",
+      "name": "\ud83d\udd10 Auth",
       "item": [
         {
           "name": "Register User",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/auth/register",
             "body": {
               "mode": "raw",
@@ -42,14 +75,19 @@
       ]
     },
     {
-      "name": "🚗 Jobs — Customer",
+      "name": "\ud83d\ude97 Jobs \u2014 Customer",
       "description": "Customer-facing job endpoints. Create, track, and manage jobs.",
       "item": [
         {
-          "name": "Create Job (Tow — Sedan)",
+          "name": "Create Job (Tow \u2014 Sedan)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs",
             "body": {
               "mode": "raw",
@@ -59,10 +97,15 @@
           }
         },
         {
-          "name": "Create Job (Heavy — JCB 3CX)",
+          "name": "Create Job (Heavy \u2014 JCB 3CX)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs",
             "body": {
               "mode": "raw",
@@ -72,10 +115,15 @@
           }
         },
         {
-          "name": "Create Job (Basement — requires gate pass)",
+          "name": "Create Job (Basement \u2014 requires gate pass)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs",
             "body": {
               "mode": "raw",
@@ -90,11 +138,24 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs/my-jobs?userId={{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs", "my-jobs"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                "my-jobs"
+              ],
               "query": [
-                { "key": "userId", "value": "{{userId}}" },
-                { "key": "status", "value": "pending", "disabled": true }
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                }
               ]
             },
             "description": "Customer sees all their jobs with human-readable status messages and driver info. Filter by status (optional)."
@@ -114,11 +175,22 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs?userId={{userId}}&status=pending",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs"
+              ],
               "query": [
-                { "key": "userId", "value": "{{userId}}" },
-                { "key": "status", "value": "pending" }
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
               ]
             }
           }
@@ -141,19 +213,24 @@
           "name": "Rate Driver",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs/{{jobId}}/rate-driver",
             "body": {
               "mode": "raw",
               "raw": "{ \"rating\": 5 }"
             },
-            "description": "Rate driver 1–5 after job is completed."
+            "description": "Rate driver 1\u20135 after job is completed."
           }
         }
       ]
     },
     {
-      "name": "🚛 Jobs — Driver",
+      "name": "\ud83d\ude9b Jobs \u2014 Driver",
       "description": "Driver-facing job endpoints.",
       "item": [
         {
@@ -162,11 +239,23 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs/available?truckType=standard_tow&serviceType=tow",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs", "available"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                "available"
+              ],
               "query": [
-                { "key": "truckType", "value": "standard_tow" },
-                { "key": "serviceType", "value": "tow" }
+                {
+                  "key": "truckType",
+                  "value": "standard_tow"
+                },
+                {
+                  "key": "serviceType",
+                  "value": "tow"
+                }
               ]
             },
             "description": "Returns open jobs that match the driver's truck type. Driver app polls or listens to this."
@@ -176,7 +265,12 @@
           "name": "Accept Job",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs/{{jobId}}/accept",
             "body": {
               "mode": "raw",
@@ -188,19 +282,24 @@
           "name": "Update Job Status",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs/{{jobId}}/status",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"in_progress\",\n  \"note\": \"Vehicle loaded on flatbed\"\n}"
             },
-            "description": "Valid statuses: pending → assigned → accepted → in_progress → on_site → at_garage → completed | cancelled"
+            "description": "Valid statuses: pending \u2192 assigned \u2192 accepted \u2192 in_progress \u2192 on_site \u2192 at_garage \u2192 completed | cancelled"
           }
         }
       ]
     },
     {
-      "name": "🔍 Matching & Pricing",
+      "name": "\ud83d\udd0d Matching & Pricing",
       "description": "Service catalog, price calculator, and matching engine.",
       "item": [
         {
@@ -217,11 +316,23 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs/price-estimate?vehicleType=Sedan&distanceKm=10",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs", "price-estimate"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                "price-estimate"
+              ],
               "query": [
-                { "key": "vehicleType", "value": "Sedan" },
-                { "key": "distanceKm", "value": "10" }
+                {
+                  "key": "vehicleType",
+                  "value": "Sedan"
+                },
+                {
+                  "key": "distanceKm",
+                  "value": "10"
+                }
               ]
             },
             "description": "Price breakdown in QAR halala. Divide by 100 for display. e.g. 4500 = QR 45.00"
@@ -238,14 +349,19 @@
       ]
     },
     {
-      "name": "📋 Quotes",
-      "description": "Quote flow — GARAGE DRIVEN. Admin is read-only.\n\nFlow: Customer submits → Garage responds with price → Customer accepts → Job created.",
+      "name": "\ud83d\udccb Quotes",
+      "description": "Quote flow \u2014 GARAGE DRIVEN. Admin is read-only.\n\nFlow: Customer submits \u2192 Garage responds with price \u2192 Customer accepts \u2192 Job created.",
       "item": [
         {
           "name": "Submit Quote Request (Customer)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes",
             "body": {
               "mode": "raw",
@@ -260,9 +376,20 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/quotes/my-quotes?userId={{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "quotes", "my-quotes"],
-              "query": [{ "key": "userId", "value": "{{userId}}" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "quotes",
+                "my-quotes"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
             },
             "description": "Customer's quotes with status messages. Shows what garage responded and at what price."
           }
@@ -275,23 +402,33 @@
           }
         },
         {
-          "name": "Garage Responds with Price ← GARAGE ONLY",
+          "name": "Garage Responds with Price \u2190 GARAGE ONLY",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/respond",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"garageId\": \"{{garageId}}\",\n  \"garageName\": \"Al Rayyan Heavy Transport\",\n  \"quotedPrice\": 85000,\n  \"garageNotes\": \"Includes specialized flatbed + crane operator. Price valid for 48hrs.\"\n}"
             },
-            "description": "GARAGE ONLY — Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00"
+            "description": "GARAGE ONLY \u2014 Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00"
           }
         },
         {
           "name": "Accept Quote (Customer)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/accept",
             "description": "Creates a job from the accepted quote and auto-assigns driver. Returns dispatchStatus."
           }
@@ -300,7 +437,12 @@
           "name": "Reject Quote (Customer)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/reject",
             "body": {
               "mode": "raw",
@@ -314,24 +456,39 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/quotes?status=pending",
-              "host": ["{{base_url}}"],
-              "path": ["api", "quotes"],
-              "query": [{ "key": "status", "value": "pending" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "quotes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
             },
-            "description": "Admin report endpoint — read only. Filter by userId, garageId, status."
+            "description": "Admin report endpoint \u2014 read only. Filter by userId, garageId, status."
           }
         }
       ]
     },
     {
-      "name": "🔧 Garage (On-Site Repair)",
-      "description": "On-site repair flow. Customer requests → Garages bid estimates → Customer picks one.",
+      "name": "\ud83d\udd27 Garage (On-Site Repair)",
+      "description": "On-site repair flow. Customer requests \u2192 Garages bid estimates \u2192 Customer picks one.",
       "item": [
         {
           "name": "Create Repair Request (Customer)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests",
             "body": {
               "mode": "raw",
@@ -344,7 +501,12 @@
           "name": "Submit Estimate (Garage)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests/{{garageRequestId}}/estimate",
             "body": {
               "mode": "raw",
@@ -365,7 +527,12 @@
           "name": "Accept Estimate (Customer)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests/{{garageRequestId}}/accept",
             "body": {
               "mode": "raw",
@@ -378,13 +545,18 @@
           "name": "Update Request Status",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests/{{garageRequestId}}/status",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"in_progress\",\n  \"garageSafetyChecklist\": {\n    \"areaIsSafe\": true,\n    \"vehicleSecured\": true,\n    \"properToolsUsed\": true,\n    \"hazardLightsOn\": true\n  }\n}"
             },
-            "description": "Status flow: accepted → on_the_way → in_progress → completed | cancelled"
+            "description": "Status flow: accepted \u2192 on_the_way \u2192 in_progress \u2192 completed | cancelled"
           }
         },
         {
@@ -401,23 +573,38 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/garage-requests?userId={{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "garage-requests"],
-              "query": [{ "key": "userId", "value": "{{userId}}" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "garage-requests"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "👤 Drivers",
+      "name": "\ud83d\udc64 Drivers",
       "description": "Driver management, status, and online/offline control.",
       "item": [
         {
           "name": "Register Driver Profile",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers",
             "body": {
               "mode": "raw",
@@ -440,12 +627,26 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/drivers?isOnline=true&truckType=standard_tow&isApproved=true",
-              "host": ["{{base_url}}"],
-              "path": ["api", "drivers"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "drivers"
+              ],
               "query": [
-                { "key": "isOnline", "value": "true" },
-                { "key": "truckType", "value": "standard_tow" },
-                { "key": "isApproved", "value": "true" }
+                {
+                  "key": "isOnline",
+                  "value": "true"
+                },
+                {
+                  "key": "truckType",
+                  "value": "standard_tow"
+                },
+                {
+                  "key": "isApproved",
+                  "value": "true"
+                }
               ]
             }
           }
@@ -466,10 +667,15 @@
           }
         },
         {
-          "name": "Go Online ← Driver Toggle",
+          "name": "Go Online \u2190 Driver Toggle",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}/online",
             "body": {
               "mode": "raw",
@@ -479,10 +685,15 @@
           }
         },
         {
-          "name": "Go Offline ← Driver Toggle",
+          "name": "Go Offline \u2190 Driver Toggle",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}/offline",
             "description": "Sets isOnline=false, isAvailable=false. Blocked if driver has an active job."
           }
@@ -491,7 +702,12 @@
           "name": "Set Status (Legacy)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/status",
             "body": {
               "mode": "raw",
@@ -504,7 +720,12 @@
           "name": "Approve Driver (Admin)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}/approve",
             "body": {
               "mode": "raw",
@@ -516,7 +737,12 @@
           "name": "Update Driver Profile",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}",
             "body": {
               "mode": "raw",
@@ -527,8 +753,8 @@
       ]
     },
     {
-      "name": "📊 Admin Reports",
-      "description": "Admin-only read access. No write operations — use garage/driver endpoints for changes.",
+      "name": "\ud83d\udcca Admin Reports",
+      "description": "Admin-only read access. No write operations \u2014 use garage/driver endpoints for changes.",
       "item": [
         {
           "name": "All Jobs Report",
@@ -536,9 +762,19 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs?status=completed",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs"],
-              "query": [{ "key": "status", "value": "completed" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
             }
           }
         },
@@ -564,11 +800,221 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/drivers?isApproved=false",
-              "host": ["{{base_url}}"],
-              "path": ["api", "drivers"],
-              "query": [{ "key": "isApproved", "value": "false" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "drivers"
+              ],
+              "query": [
+                {
+                  "key": "isApproved",
+                  "value": "false"
+                }
+              ]
             },
             "description": "Pending driver approvals."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udee1\ufe0f Discipline & Safety",
+      "description": "Driver discipline, compliance, safety checklists, and priority queue.",
+      "item": [
+        {
+          "name": "Apply No-Show Fee (Customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/no-show",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jobId\":\"{{jobId}}\",\"customerId\":\"{{userId}}\",\"driverId\":\"{{driverId}}\"}"
+            },
+            "description": "Charges QR 50 (5000 halala) when customer does not respond within 10 minutes of driver arrival."
+          }
+        },
+        {
+          "name": "Issue Late Warning (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/warning/{{driverId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jobId\":\"{{jobId}}\",\"reason\":\"Driver arrived 20 minutes after ETA\"}"
+            },
+            "description": "Adds 1 warning to driver. At 3 warnings account is auto-suspended."
+          }
+        },
+        {
+          "name": "Clear Suspension (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/clear/{{driverId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"adminNote\":\"Driver completed retraining. Suspension cleared.\"}"
+            },
+            "description": "Resets warning count and lifts suspension."
+          }
+        },
+        {
+          "name": "Compliance Check \u2014 All Drivers",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/discipline/compliance-check",
+            "description": "Scans all drivers: 30-day notice, 7-day critical, expired = blocked. Run daily via scheduler."
+          }
+        },
+        {
+          "name": "Driver Compliance Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/compliance/{{driverId}}",
+            "description": "Returns overallStatus: valid | expiring_soon | expiring_critical | expired. Shows days remaining per document."
+          }
+        },
+        {
+          "name": "Priority Queue (Dispatch)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/priority-queue",
+            "description": "All pending jobs scored by urgency + wait time. Highest score dispatched first."
+          }
+        },
+        {
+          "name": "Admin Review Queue",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/admin-review",
+            "description": "Custom/Others jobs system could not auto-match. Admin manually assigns driver."
+          }
+        },
+        {
+          "name": "Admin Assign Job (Others)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/admin-review/{{jobId}}/assign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"driverId\":\"{{driverId}}\",\"adminNote\":\"Manually assigned specialized crane truck.\"}"
+            },
+            "description": "Admin assigns driver to custom job. Marks admin_review_queue resolved."
+          }
+        },
+        {
+          "name": "Driver Safety Check (Pre-Trip)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/safety-check/{{jobId}}/driver",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"driverId\":\"{{driverId}}\",\"hookSecured\":true,\"winchLocked\":true,\"safetyLightsOn\":true,\"areaIsSafe\":true,\"vehicleSecured\":true,\"hazardLightsOn\":true,\"properToolsUsed\":true}"
+            },
+            "description": "All 7 items must be true before job can start. Returns 400 with failedChecks list if any missing."
+          }
+        },
+        {
+          "name": "Customer Safety Confirmation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/safety-check/{{jobId}}/customer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\":\"{{userId}}\",\"inSafeLocation\":true,\"notStandingBehindVehicle\":true,\"willVerifyIdentity\":true}"
+            },
+            "description": "3 safety items customer must confirm. Required before job confirmation."
+          }
+        },
+        {
+          "name": "Get Safety Checks for Job",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/safety-check/{{jobId}}",
+            "description": "Returns both driver pre-trip and customer confirmation records. bothCompleted flag for UI."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 Quote Bidding (Industrial)",
+      "description": "Multi-driver bidding for industrial/heavy quotes. Customer compares bids and accepts the best.",
+      "item": [
+        {
+          "name": "Submit Bid (Driver/Garage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/quotes/{{quoteId}}/bid",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"garageId\":\"{{garageId}}\",\"bidderName\":\"Al Rayyan Heavy Transport\",\"price\":85000,\"etaMinutes\":45,\"equipment\":[\"boom_truck\",\"flatbed\"],\"notes\":\"Includes crane operator. Price valid 48hrs.\",\"rating\":4.8,\"vehicleModel\":\"Volvo FH16 Flatbed\"}"
+            },
+            "description": "price in halala: 85000 = QR 850.00. Multiple bidders allowed. Quote status becomes collecting_bids."
+          }
+        },
+        {
+          "name": "View All Bids (Customer)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/quotes/{{quoteId}}/bids",
+            "description": "Sorted by price ASC. isBestPrice and isFastestArrival flags highlight top bids. Returns lowestPriceDisplay."
+          }
+        },
+        {
+          "name": "Accept Winning Bid (Customer)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/quotes/{{quoteId}}/bids/BID_ID_HERE/accept",
+            "description": "Accepts winning bid, rejects all others automatically, creates linked job with bid price and ETA."
           }
         }
       ]
