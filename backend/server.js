@@ -49,7 +49,7 @@ app.use('/api/discipline', disciplineRoutes);      // Week 4: driver discipline 
 app.get('/', (_req, res) => {
   res.json({
     service: 'RoadResQ API',
-    version: '4.0.0',
+    version: '4.1.0',
     status: 'running',
     project: 'roadresq-bd6b0',
     region: 'me-central1 (Doha, Qatar)',
@@ -88,6 +88,8 @@ app.get('/', (_req, res) => {
       'Traffic buffer ETA: +25% during Qatar peak hours',
       'Driver online/offline toggle with compliance gating',
       'Real-time dispatch: customer my-jobs + live job status endpoint',
+      'Scheduled pickup: isScheduled + scheduledPickupDate + scheduledPickupTime (all service types)',
+      'Cancellation tracking: cancellationReason + cancelledBy on all job cancellations',
     ],
   });
 });

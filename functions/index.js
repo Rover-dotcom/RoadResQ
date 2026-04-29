@@ -1,7 +1,10 @@
 /**
- * RoadResQ — Firebase Cloud Functions Entry Point (Week 4 / v4.0.0)
+ * RoadResQ — Firebase Cloud Functions Entry Point (v4.1.0)
  * Region: me-central1 (Doha, Qatar)
- * URL: https://me-central1-roadresq-bd6b0.cloudfunctions.net/api
+ * URL: https://api-h6acdw3itq-ww.a.run.app
+ * 
+ * Routes are imported from ../backend/ (single source of truth).
+ * Do NOT add business logic here — all logic lives in backend/.
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
@@ -38,12 +41,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+// ─── Routes (deployed copies — kept in sync with backend/) ───────────────────
 const authRoutes      = require('./routes/authRoutes');
 const jobRoutes       = require('./routes/jobRoutes');
 const driverRoutes    = require('./routes/driverRoutes');
 const quoteRoutes     = require('./routes/quoteRoutes');
-const garageRoutes    = require('./routes/garageRoutes');     // Week 4: on-site repair
+const garageRoutes    = require('./routes/garageRoutes');      // Week 4: on-site repair
 const disciplineRoutes = require('./routes/disciplineRoutes'); // Week 4: driver discipline
 
 app.use('/api/auth',            authRoutes);
@@ -56,7 +59,7 @@ app.use('/api/discipline',      disciplineRoutes); // Week 4
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => res.json({
   service: 'RoadResQ API',
-  version: '4.0.0',
+  version: '4.1.0',
   status: 'running',
   region: 'me-central1 (Doha, Qatar)',
   project: 'roadresq-bd6b0',
@@ -88,6 +91,8 @@ app.get('/', (_req, res) => res.json({
     'Traffic buffer ETA: +25% during Qatar peak hours',
     'Driver online/offline toggle with compliance gating',
     'Real-time dispatch: customer my-jobs + live job status',
+    'Scheduled pickup: isScheduled + scheduledPickupDate + scheduledPickupTime (all service types)',
+    'Cancellation tracking: cancellationReason + cancelledBy on all cancellations',
   ],
 }));
 

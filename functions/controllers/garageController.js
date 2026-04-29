@@ -73,12 +73,16 @@ const createGarageRequestHandler = async (req, res) => {
   const {
     userId,
     issue,
-    customIssue,      // when issue = "Others", user types what it is
-    customDetails,    // multiline description
-    location,        // { lat, lng }
+    customIssue,       // when issue = "Others", user types what it is
+    customDetails,     // multiline description
+    location,          // { lat, lng }
     additionalNotes,
     photoUrls,
-    contactInfo,     // { name, phone } — auto-filled from app usually
+    contactInfo,       // { name, phone } — auto-filled from app usually
+    // Scheduling
+    isScheduled,       // true = future booking
+    preferredDate,     // 'YYYY-MM-DD'
+    preferredTime,     // 'HH:MM' 24h Qatar time
   } = req.body;
 
   try {
@@ -98,10 +102,15 @@ const createGarageRequestHandler = async (req, res) => {
       photoUrls: photoUrls || [],
 
       // Location
-      location,                          // { lat, lng }
+      location,                           // { lat, lng }
 
       // Contact (sent to garage after accept)
       contactInfo: contactInfo || null,
+
+      // Scheduling
+      isScheduled: isScheduled || false,
+      preferredDate: preferredDate || null,   // 'YYYY-MM-DD'
+      preferredTime: preferredTime || null,   // 'HH:MM'
 
       // Status flow
       status: 'pending',
@@ -112,8 +121,8 @@ const createGarageRequestHandler = async (req, res) => {
       acceptedEstimateId: null,
       assignedGarageId: null,
 
-      // Auto-cancel
-      autoCancelAt,
+      // Auto-cancel (not applied for scheduled jobs until the scheduled time)
+      autoCancelAt: isScheduled ? null : autoCancelAt,
 
       // Safety
       garageSafetyChecklist: null,

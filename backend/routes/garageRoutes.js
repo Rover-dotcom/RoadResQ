@@ -34,6 +34,10 @@ const createRequestValidation = [
   body('location.lat').isFloat().withMessage('location.lat must be a number'),
   body('location.lng').isFloat().withMessage('location.lng must be a number'),
   body('issue').notEmpty().withMessage('issue description is required'),
+  // Scheduling (optional)
+  body('isScheduled').optional().isBoolean().withMessage('isScheduled must be true or false'),
+  body('preferredDate').optional().matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('preferredDate must be YYYY-MM-DD'),
+  body('preferredTime').optional().matches(/^\d{2}:\d{2}$/).withMessage('preferredTime must be HH:MM (24h)'),
 ];
 
 const submitEstimateValidation = [

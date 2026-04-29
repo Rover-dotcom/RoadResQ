@@ -35,6 +35,20 @@ const createJobValidation = [
     .optional()
     .isIn(['tow', 'garage', 'heavy_equipment', 'quote_industrial'])
     .withMessage('serviceType must be: tow | garage | heavy_equipment | quote_industrial'),
+
+  // ─── Scheduling fields ─────────────────────────────────────────
+  body('isScheduled')
+    .optional()
+    .isBoolean()
+    .withMessage('isScheduled must be true or false'),
+  body('scheduledPickupDate')
+    .optional()
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage('scheduledPickupDate must be in YYYY-MM-DD format (e.g. 2026-05-10)'),
+  body('scheduledPickupTime')
+    .optional()
+    .matches(/^\d{2}:\d{2}$/)
+    .withMessage('scheduledPickupTime must be in HH:MM 24-hour format (e.g. 09:00)'),
 ];
 
 // ─── Routes ───────────────────────────────────────────────────────────────────

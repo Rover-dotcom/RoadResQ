@@ -1,5 +1,5 @@
 /**
- * Job Model — RoadResQ (Updated)
+ * Job Model — RoadResQ (v4.1.0)
  *
  * Full job schema with service type, category, vehicle weight,
  * required truck type, pricing breakdown, and status lifecycle.
@@ -111,6 +111,13 @@ function buildJobDocument(data) {
     requiresGatePass: data.requiresGatePass || false,
     isSpecialLoad: data.isSpecialLoad || false, // heavy/industrial → expert-only drivers
 
+    // ─── Scheduling ────────────────────────────────────────────
+    // isScheduled = true means customer wants a future pickup, not immediate
+    isScheduled: data.isScheduled || false,
+    scheduledPickupDate: data.scheduledPickupDate || null,  // 'YYYY-MM-DD' e.g. '2026-05-10'
+    scheduledPickupTime: data.scheduledPickupTime || null,  // 'HH:MM' e.g. '09:00' (24h, Qatar time)
+    scheduledAt: data.scheduledPickupDate ? new Date().toISOString() : null, // when this was scheduled
+
     // ─── Location ──────────────────────────────────────────────
     pickup: data.pickup,
     drop: data.drop,
@@ -152,6 +159,11 @@ function buildJobDocument(data) {
     // ─── Notes ─────────────────────────────────────────────────
     customerNotes: data.customerNotes || null,
     adminNotes: null,
+
+    // ─── Cancellation Detail ───────────────────────────────────
+    // Filled when status transitions to 'cancelled'
+    cancellationReason: null, // e.g. 'customer_request' | 'no_driver_available' | 'driver_no_show'
+    cancelledBy: null,        // 'customer' | 'driver' | 'system'
   };
 }
 
@@ -267,12 +279,19 @@ async function updateJobStatus(jobId, newStatus, extras = {}) {
 
 /**
  * Cancel a job and release the driver.
+ * @param {string} jobId
+ * @param {object} [options] - { reason, cancelledBy }
  */
-async function cancelJob(jobId) {
+async function cancelJob(jobId, options = {}) {
   const job = await getJobById(jobId);
   if (!job) throw new Error('Job not found');
 
-  await updateJobStatus(jobId, 'cancelled');
+  const extras = {
+    cancellationReason: options.reason || 'customer_request',
+    cancelledBy: options.cancelledBy || 'customer',
+  };
+
+  await updateJobStatus(jobId, 'cancelled', extras);
 
   // Release driver if one was assigned
   if (job.driverId) {
