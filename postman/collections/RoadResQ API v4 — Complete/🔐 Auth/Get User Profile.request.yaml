@@ -1,0 +1,6 @@
+$kind: http-request
+name: Get User Profile
+method: GET
+url: '{{base_url}}/api/auth/me/{{userId}}'
+order: 2000
+description: Fetch user profile by Firebase UID.

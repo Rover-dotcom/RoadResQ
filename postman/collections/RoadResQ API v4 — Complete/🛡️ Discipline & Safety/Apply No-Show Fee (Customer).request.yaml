@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Apply No-Show Fee (Customer)'
+method: POST
+url: '{{base_url}}/api/discipline/no-show'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"jobId":"{{jobId}}","customerId":"{{userId}}","driverId":"{{driverId}}"}'
+description: 'Charges QR 50 (5000 halala) when customer does not respond within 10 minutes of driver arrival.'

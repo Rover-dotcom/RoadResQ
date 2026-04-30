@@ -1,0 +1,6 @@
+$kind: http-request
+name: Auto-Cancel Check
+method: POST
+url: '{{base_url}}/api/garage-requests/{{garageRequestId}}/auto-cancel-check'
+order: 6000
+description: 'Call after 15 minutes if no garage accepted. Returns cancelTriggered and minutesUntilAutoCancel.'

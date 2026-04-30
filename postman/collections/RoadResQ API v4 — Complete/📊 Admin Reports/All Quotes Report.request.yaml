@@ -1,0 +1,6 @@
+$kind: http-request
+name: All Quotes Report
+method: GET
+url: '{{base_url}}/api/quotes'
+order: 2000
+description: 'All quotes across all users and garages.'

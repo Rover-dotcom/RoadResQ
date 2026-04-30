@@ -1,0 +1,19 @@
+$kind: http-request
+name: Register User
+method: POST
+url: '{{base_url}}/api/auth/register'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "uid": "firebase_uid_here",
+      "email": "user@example.com",
+      "name": "Ahmed Al-Rashidi",
+      "phone": "+974-5555-0001",
+      "role": "customer"
+    }
+description: 'Register after Firebase Auth. role: customer | driver | admin'

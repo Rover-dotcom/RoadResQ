@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'All Quotes (Admin Read-Only)'
+method: GET
+url: '{{base_url}}/api/quotes?status=pending'
+order: 7000
+queryParams:
+  - key: status
+    value: pending
+description: 'Admin report endpoint — read only. Filter by userId, garageId, status.'

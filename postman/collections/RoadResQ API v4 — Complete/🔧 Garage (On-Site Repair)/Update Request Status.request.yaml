@@ -1,0 +1,21 @@
+$kind: http-request
+name: Update Request Status
+method: PUT
+url: '{{base_url}}/api/garage-requests/{{garageRequestId}}/status'
+order: 5000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "in_progress",
+      "garageSafetyChecklist": {
+        "areaIsSafe": true,
+        "vehicleSecured": true,
+        "properToolsUsed": true,
+        "hazardLightsOn": true
+      }
+    }
+description: 'Status flow: accepted → on_the_way → in_progress → completed | cancelled'

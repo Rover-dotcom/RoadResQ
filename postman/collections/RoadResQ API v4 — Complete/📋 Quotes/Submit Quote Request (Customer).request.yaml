@@ -1,0 +1,24 @@
+$kind: http-request
+name: 'Submit Quote Request (Customer)'
+method: POST
+url: '{{base_url}}/api/quotes'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "{{userId}}",
+      "serviceType": "quote_industrial",
+      "vehicleType": "20ft Container",
+      "itemDescription": "20ft shipping container, loaded with office furniture",
+      "pickup": "Hamad Port, Doha",
+      "drop": "Al Khor Industrial Zone",
+      "pickupCoords": { "lat": 25.1135, "lng": 51.5522 },
+      "estimatedWeight": 12000,
+      "urgency": "medium",
+      "customerNotes": "Available from 8am onwards"
+    }
+description: 'Auto-broadcasts to nearby garages within 15km. Returns broadcastCount.'

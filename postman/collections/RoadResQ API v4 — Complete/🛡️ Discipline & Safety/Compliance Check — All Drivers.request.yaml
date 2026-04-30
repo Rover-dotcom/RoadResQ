@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'Compliance Check — All Drivers'
+method: POST
+url: '{{base_url}}/api/discipline/compliance-check'
+order: 4000
+description: 'Scans all drivers: 30-day notice, 7-day critical, expired = blocked. Run daily via scheduler.'

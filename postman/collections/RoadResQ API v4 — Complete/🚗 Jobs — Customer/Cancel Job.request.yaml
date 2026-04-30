@@ -1,0 +1,5 @@
+$kind: http-request
+name: Cancel Job
+method: DELETE
+url: '{{base_url}}/api/jobs/{{jobId}}/cancel'
+order: 8000

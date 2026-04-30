@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Create Job (Tow — Sedan)'
+method: POST
+url: '{{base_url}}/api/jobs'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "{{userId}}",
+      "vehicleType": "Sedan",
+      "pickup": "Al Dafna, Doha",
+      "drop": "Garage Zone, Industrial Area",
+      "pickupCoords": { "lat": 25.3548, "lng": 51.1839 },
+      "distanceKm": 8.5,
+      "isRestrictedArea": false,
+      "additionalNotes": "Car won't start, keys inside"
+    }
+description: 'Creates job. Auto-assigns best driver. Returns dispatchStatus if no driver available.'

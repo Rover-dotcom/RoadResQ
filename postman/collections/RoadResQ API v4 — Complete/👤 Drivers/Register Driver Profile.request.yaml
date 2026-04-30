@@ -1,0 +1,28 @@
+$kind: http-request
+name: Register Driver Profile
+method: POST
+url: '{{base_url}}/api/drivers'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "uid": "firebase_uid_driver",
+      "name": "Khalid Al-Mansouri",
+      "email": "khalid@driver.com",
+      "phone": "+974-5555-0099",
+      "truckType": "flatbed_heavy",
+      "truckModel": "Volvo FH16",
+      "truckPlate": "QA-7821",
+      "maxCapacityKg": 15000,
+      "maxLengthM": 12,
+      "equipmentTypes": ["boom_truck", "flatbed"],
+      "yearsExperience": 5,
+      "licenseNumber": "DL-Qatar-99812",
+      "licenseExpiry": "2027-06-30",
+      "serviceTypes": ["heavy_equipment", "tow"]
+    }
+description: 'Run after POST /api/auth/register with role=driver. truckType: light_tow | standard_tow | heavy_tow | flatbed_small | flatbed_heavy | service_van'

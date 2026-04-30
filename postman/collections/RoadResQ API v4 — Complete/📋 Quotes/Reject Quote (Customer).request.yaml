@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Reject Quote (Customer)'
+method: PUT
+url: '{{base_url}}/api/quotes/{{quoteId}}/reject'
+order: 6000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{ "reason": "Price too high" }'

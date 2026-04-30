@@ -1,0 +1,6 @@
+$kind: http-request
+name: Driver Compliance Status
+method: GET
+url: '{{base_url}}/api/discipline/compliance/{{driverId}}'
+order: 5000
+description: 'Returns overallStatus: valid | expiring_soon | expiring_critical | expired. Shows days remaining per document.'

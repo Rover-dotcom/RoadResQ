@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Driver Safety Check (Pre-Trip)'
+method: POST
+url: '{{base_url}}/api/discipline/safety-check/{{jobId}}/driver'
+order: 9000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"driverId":"{{driverId}}","hookSecured":true,"winchLocked":true,"safetyLightsOn":true,"areaIsSafe":true,"vehicleSecured":true,"hazardLightsOn":true,"properToolsUsed":true}'
+description: 'All 7 items must be true before job can start. Returns 400 with failedChecks list if any missing.'

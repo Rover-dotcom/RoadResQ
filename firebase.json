@@ -3,18 +3,43 @@
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git", "*.log"]
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log"
+      ]
     }
   ],
   "firestore": {
+    "database": "(default)",
+    "location": "me-central1",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "emulators": {
-    "functions": { "port": 5001 },
-    "firestore": { "port": 8080 },
-    "auth": { "port": 9099 },
-    "ui": { "enabled": true, "port": 4000 },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "auth": {
+      "port": 9099
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
     "singleProjectMode": true
+  },
+  "auth": {
+    "providers": {
+      "anonymous": true,
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "RoadResQ",
+        "supportEmail": "blackburnxprojects@gmail.com"
+      }
+    }
   }
 }

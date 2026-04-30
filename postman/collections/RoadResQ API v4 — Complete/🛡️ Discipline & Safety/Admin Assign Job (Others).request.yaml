@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Admin Assign Job (Others)'
+method: PUT
+url: '{{base_url}}/api/discipline/admin-review/{{jobId}}/assign'
+order: 8000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"driverId":"{{driverId}}","adminNote":"Manually assigned specialized crane truck."}'
+description: 'Admin assigns driver to custom job. Marks admin_review_queue resolved.'

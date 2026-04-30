@@ -1,0 +1,11 @@
+$kind: http-request
+name: Price Estimate
+method: GET
+url: '{{base_url}}/api/jobs/price-estimate?vehicleType=Sedan&distanceKm=10'
+order: 2000
+queryParams:
+  - key: vehicleType
+    value: Sedan
+  - key: distanceKm
+    value: '10'
+description: 'Price breakdown in QAR halala. Divide by 100 for display. e.g. 4500 = QR 45.00'

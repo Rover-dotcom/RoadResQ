@@ -1,0 +1,27 @@
+$kind: collection
+name: 'RoadResQ API v4 — Complete'
+description: |-
+  RoadResQ logistics platform — All endpoints. Base URL: https://api-h6acdw3itq-ww.a.run.app
+
+  Key flows:
+  1. Jobs: Customer creates job → auto-dispatch → driver accepts → status updates
+  2. Quotes: Customer submits → Garage responds with price → Customer accepts → Job created
+  3. Garage: Customer creates repair request → Garages bid → Customer accepts estimate
+  4. Drivers: Register → Approve → Go Online → Accept Jobs
+  5. Discipline: No-show fees, warnings, safety checklists, compliance
+  6. Bidding: Multi-driver bids on industrial quotes, customer picks best
+variables:
+  - key: base_url
+    value: 'https://api-h6acdw3itq-ww.a.run.app'
+  - key: userId
+    value: 'user_001'
+  - key: driverId
+    value: 'driver_001'
+  - key: jobId
+    value: 'job_001'
+  - key: quoteId
+    value: 'quote_001'
+  - key: garageRequestId
+    value: 'garage_001'
+  - key: garageId
+    value: 'garage_A1'

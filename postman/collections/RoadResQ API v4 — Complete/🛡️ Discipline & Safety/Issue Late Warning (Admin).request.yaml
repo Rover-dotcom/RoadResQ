@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Issue Late Warning (Admin)'
+method: POST
+url: '{{base_url}}/api/discipline/warning/{{driverId}}'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"jobId":"{{jobId}}","reason":"Driver arrived 20 minutes after ETA"}'
+description: 'Adds 1 warning to driver. At 3 warnings account is auto-suspended.'

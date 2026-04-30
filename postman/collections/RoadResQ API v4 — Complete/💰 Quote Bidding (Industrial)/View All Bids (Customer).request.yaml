@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'View All Bids (Customer)'
+method: GET
+url: '{{base_url}}/api/quotes/{{quoteId}}/bids'
+order: 2000
+description: 'Sorted by price ASC. isBestPrice and isFastestArrival flags highlight top bids. Returns lowestPriceDisplay.'

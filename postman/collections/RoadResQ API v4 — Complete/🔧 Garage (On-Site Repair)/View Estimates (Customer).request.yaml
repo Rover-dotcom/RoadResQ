@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'View Estimates (Customer)'
+method: GET
+url: '{{base_url}}/api/garage-requests/{{garageRequestId}}/estimates'
+order: 3000

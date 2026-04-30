@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get Quote by ID
+method: GET
+url: '{{base_url}}/api/quotes/{{quoteId}}'
+order: 3000

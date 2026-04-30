@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Accept Quote (Customer)'
+method: PUT
+url: '{{base_url}}/api/quotes/{{quoteId}}/accept'
+order: 5000
+headers:
+  - key: Content-Type
+    value: application/json
+description: 'Creates a job from the accepted quote and auto-assigns driver. Returns dispatchStatus.'

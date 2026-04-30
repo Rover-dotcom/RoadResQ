@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Approve Driver (Admin)'
+method: PUT
+url: '{{base_url}}/api/drivers/{{driverId}}/approve'
+order: 9000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "approve": true,
+      "adminNotes": "Documents verified. Approved."
+    }

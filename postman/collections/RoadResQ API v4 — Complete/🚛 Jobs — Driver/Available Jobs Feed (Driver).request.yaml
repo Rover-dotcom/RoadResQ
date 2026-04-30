@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Available Jobs Feed (Driver)'
+method: GET
+url: '{{base_url}}/api/jobs/available?truckType=standard_tow&serviceType=tow'
+order: 1000
+queryParams:
+  - key: truckType
+    value: standard_tow
+  - key: serviceType
+    value: tow
+description: "Returns open jobs that match the driver's truck type. Driver app polls or listens to this."

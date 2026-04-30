@@ -1,0 +1,11 @@
+$kind: http-request
+name: Accept Job
+method: PUT
+url: '{{base_url}}/api/jobs/{{jobId}}/accept'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{ "driverId": "{{driverId}}" }'

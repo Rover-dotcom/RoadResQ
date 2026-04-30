@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Set Status (Legacy)'
+method: PUT
+url: '{{base_url}}/api/drivers/status'
+order: 8000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "driverUid": "{{driverId}}",
+      "isOnline": true
+    }
+description: 'Legacy endpoint. Use /online and /offline instead.'

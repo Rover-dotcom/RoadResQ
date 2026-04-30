@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Go Offline ← Driver Toggle'
+method: PUT
+url: '{{base_url}}/api/drivers/{{driverId}}/offline'
+order: 7000
+headers:
+  - key: Content-Type
+    value: application/json
+description: 'Sets isOnline=false, isAvailable=false. Blocked if driver has an active job.'

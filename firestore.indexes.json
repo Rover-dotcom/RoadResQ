@@ -1,164 +1,51 @@
 {
-  "indexes": [
-
-    // ─── DRIVERS ──────────────────────────────────────────────────────────────
-    // Matching engine base query: online + approved + available
-    {
-      "collectionGroup": "drivers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "isOnline",    "order": "ASCENDING" },
-        { "fieldPath": "isApproved",  "order": "ASCENDING" },
-        { "fieldPath": "isAvailable", "order": "ASCENDING" }
-      ]
-    },
-    // Admin query: suspended drivers
-    {
-      "collectionGroup": "drivers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "isSuspended",   "order": "ASCENDING" },
-        { "fieldPath": "suspendedAt",   "order": "DESCENDING" }
-      ]
-    },
-    // Compliance check: blocked drivers
-    {
-      "collectionGroup": "drivers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "complianceBlocked", "order": "ASCENDING" },
-        { "fieldPath": "isApproved",        "order": "ASCENDING" }
-      ]
-    },
-
-    // ─── JOBS ─────────────────────────────────────────────────────────────────
-    // Job list by user
-    {
-      "collectionGroup": "jobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    // Job list by driver
-    {
-      "collectionGroup": "jobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "driverId",  "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    // Available jobs (pending, non-quote)
-    {
-      "collectionGroup": "jobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status",          "order": "ASCENDING" },
-        { "fieldPath": "requiresQuote",   "order": "ASCENDING" },
-        { "fieldPath": "createdAt",       "order": "DESCENDING" }
-      ]
-    },
-    // Jobs by status
-    {
-      "collectionGroup": "jobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    // ─── QUOTE REQUESTS ───────────────────────────────────────────────────────
-    // Quotes by status + createdAt
-    {
-      "collectionGroup": "quote_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    // Quotes by user
-    {
-      "collectionGroup": "quote_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    // ─── GARAGE REQUESTS (Week 4) ─────────────────────────────────────────────
-    // Garage requests by user
-    {
-      "collectionGroup": "garage_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    // Garage requests by assigned garage
-    {
-      "collectionGroup": "garage_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "assignedGarageId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt",        "order": "DESCENDING" }
-      ]
-    },
-    // Garage requests by status
-    {
-      "collectionGroup": "garage_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    // ─── GARAGE LIVE REQUESTS (Week 4 broadcasts) ─────────────────────────────
-    // Broadcast documents by garageId (garage listens to their own queue)
-    {
-      "collectionGroup": "garage_live_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "garageId",    "order": "ASCENDING" },
-        { "fieldPath": "broadcastAt", "order": "DESCENDING" }
-      ]
-    },
-    // Broadcast documents by requestId
-    {
-      "collectionGroup": "garage_live_requests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "requestId",   "order": "ASCENDING" },
-        { "fieldPath": "broadcastAt", "order": "DESCENDING" }
-      ]
-    },
-
-    // ─── DRIVER DISCIPLINE LOG (Week 4) ───────────────────────────────────────
-    // Discipline log by driverId
-    {
-      "collectionGroup": "driver_discipline_log",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "driverId",  "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    // Discipline log by eventType
-    {
-      "collectionGroup": "driver_discipline_log",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "eventType", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    }
-
-  ],
+  // Example (Standard Edition):
+  //
+  // "indexes": [
+  //   {
+  //     "collectionGroup": "widgets",
+  //     "queryScope": "COLLECTION",
+  //     "fields": [
+  //       { "fieldPath": "foo", "arrayConfig": "CONTAINS" },
+  //       { "fieldPath": "bar", "mode": "DESCENDING" }
+  //     ]
+  //   },
+  //
+  //  "fieldOverrides": [
+  //    {
+  //      "collectionGroup": "widgets",
+  //      "fieldPath": "baz",
+  //      "indexes": [
+  //        { "order": "ASCENDING", "queryScope": "COLLECTION" }
+  //      ]
+  //    },
+  //   ]
+  // ]
+  //
+  // Example (Enterprise Edition):
+  //
+  // "indexes": [
+  //   {
+  //     "collectionGroup": "reviews",
+  //     "queryScope": "COLLECTION_GROUP",
+  //     "apiScope": "MONGODB_COMPATIBLE_API",
+  //     "density": "DENSE",
+  //     "multikey": false,
+  //     "fields": [
+  //       { "fieldPath": "baz", "mode": "ASCENDING" }
+  //     ]
+  //   },
+  //   {
+  //     "collectionGroup": "items",
+  //     "queryScope": "COLLECTION_GROUP",
+  //     "apiScope": "MONGODB_COMPATIBLE_API",
+  //     "density": "SPARSE_ANY",
+  //     "multikey": true,
+  //     "fields": [
+  //       { "fieldPath": "baz", "mode": "ASCENDING" }
+  //     ]
+  //   },
+  // ]
+  "indexes": [],
   "fieldOverrides": []
 }

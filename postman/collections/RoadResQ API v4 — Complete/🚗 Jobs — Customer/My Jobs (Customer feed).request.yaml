@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'My Jobs (Customer feed)'
+method: GET
+url: '{{base_url}}/api/jobs/my-jobs?userId={{userId}}'
+order: 4000
+queryParams:
+  - key: userId
+    value: '{{userId}}'
+  - key: status
+    value: pending
+    disabled: true
+description: 'Customer sees all their jobs with human-readable status messages and driver info. Filter by status (optional).'

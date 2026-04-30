@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'Create Job (Basement — requires gate pass)'
+method: POST
+url: '{{base_url}}/api/jobs'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "{{userId}}",
+      "vehicleType": "Sedan",
+      "pickup": "West Bay Mall Basement B2",
+      "drop": "Service Center, Al Sadd",
+      "pickupCoords": { "lat": 25.3198, "lng": 51.5245 },
+      "distanceKm": 5.2,
+      "isRestrictedArea": true,
+      "clearanceHeightMm": 1800,
+      "requiresGatePass": true
+    }
+description: 'Job from basement parking. Matches only drivers with height clearance and gate pass.'

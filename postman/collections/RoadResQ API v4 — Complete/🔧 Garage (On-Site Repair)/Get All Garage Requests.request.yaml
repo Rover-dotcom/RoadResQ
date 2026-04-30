@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get All Garage Requests
+method: GET
+url: '{{base_url}}/api/garage-requests?userId={{userId}}'
+order: 7000
+queryParams:
+  - key: userId
+    value: '{{userId}}'

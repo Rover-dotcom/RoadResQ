@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'My Quotes (Customer)'
+method: GET
+url: '{{base_url}}/api/quotes/my-quotes?userId={{userId}}'
+order: 2000
+queryParams:
+  - key: userId
+    value: '{{userId}}'
+description: "Customer's quotes with status messages. Shows what garage responded and at what price."

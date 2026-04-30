@@ -1,0 +1,9 @@
+$kind: http-request
+name: All Drivers Report
+method: GET
+url: '{{base_url}}/api/drivers?isApproved=false'
+order: 4000
+queryParams:
+  - key: isApproved
+    value: 'false'
+description: 'Pending driver approvals.'

@@ -1,0 +1,6 @@
+$kind: http-request
+name: Truck Types Catalog
+method: GET
+url: '{{base_url}}/api/drivers/truck-types'
+order: 2000
+description: 'All valid truck types with labels. Use in registration dropdowns.'

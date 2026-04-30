@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Create Repair Request (Customer)'
+method: POST
+url: '{{base_url}}/api/garage-requests'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "{{userId}}",
+      "issue": "Battery dead",
+      "location": { "lat": 25.2854, "lng": 51.5310 },
+      "contactInfo": { "name": "Ahmed", "phone": "+974-5555-0001" },
+      "additionalNotes": "Car is in Villaggio Mall parking level 2"
+    }
+description: 'Broadcasts to garages within 10km. Returns broadcastCount and autoCancelAt.'

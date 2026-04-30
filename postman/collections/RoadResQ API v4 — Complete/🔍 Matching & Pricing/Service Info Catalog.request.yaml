@@ -1,0 +1,6 @@
+$kind: http-request
+name: Service Info Catalog
+method: GET
+url: '{{base_url}}/api/jobs/service-info'
+order: 1000
+description: 'Returns all vehicle types, truck type hierarchy, equipment types, and pricing rules.'

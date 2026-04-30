@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Garage Responds with Price ← GARAGE ONLY'
+method: PUT
+url: '{{base_url}}/api/quotes/{{quoteId}}/respond'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "garageId": "{{garageId}}",
+      "garageName": "Al Rayyan Heavy Transport",
+      "quotedPrice": 85000,
+      "garageNotes": "Includes specialized flatbed + crane operator. Price valid for 48hrs."
+    }
+description: 'GARAGE ONLY — Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00'

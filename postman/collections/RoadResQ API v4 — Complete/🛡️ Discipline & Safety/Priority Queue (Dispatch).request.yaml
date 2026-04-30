@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'Priority Queue (Dispatch)'
+method: GET
+url: '{{base_url}}/api/discipline/priority-queue'
+order: 6000
+description: 'All pending jobs scored by urgency + wait time. Highest score dispatched first.'

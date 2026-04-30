@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'Get All Jobs (filtered)'
+method: GET
+url: '{{base_url}}/api/jobs?userId={{userId}}&status=pending'
+order: 6000
+queryParams:
+  - key: userId
+    value: '{{userId}}'
+  - key: status
+    value: pending

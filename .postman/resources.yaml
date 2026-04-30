@@ -1,0 +1,14 @@
+# Use this workspace to collaborate
+workspace:
+  id: 083ace5a-1291-4d7f-8906-b5e788b4ff88
+
+localResources:
+  collections:
+    - ../api/RoadResQ_API_v4_Complete.postman_collection.json
+    - ../docs/RoadResQ_API.postman_collection.json
+    - ../docs/RoadResQ_API_v3_Postman.json
+    - ../docs/RoadResQ_API_v4_Complete.postman_collection.json
+  environments:
+    - ../api/RoadResQ_Production.postman_environment.json
+    - ../docs/RoadResQ_Local.postman_environment.json
+    - ../docs/RoadResQ_Production.postman_environment.json

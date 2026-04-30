@@ -1,0 +1,6 @@
+$kind: http-request
+name: Driver Full Status
+method: GET
+url: '{{base_url}}/api/drivers/{{driverId}}/status'
+order: 5000
+description: 'Returns isOnline, isAvailable, isApproved, compliance (expired docs), canTakeJobs, activeJobId.'

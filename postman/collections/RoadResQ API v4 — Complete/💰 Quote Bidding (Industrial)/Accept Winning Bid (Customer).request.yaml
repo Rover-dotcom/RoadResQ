@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Accept Winning Bid (Customer)'
+method: PUT
+url: '{{base_url}}/api/quotes/{{quoteId}}/accept-bid'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"garageId":"{{garageId}}"}'
+description: 'Locks in the winning bid, creates job, auto-assigns driver. Returns dispatchStatus.'

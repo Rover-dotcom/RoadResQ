@@ -1,0 +1,12 @@
+$kind: http-request
+name: Customer Safety Confirmation
+method: POST
+url: '{{base_url}}/api/discipline/safety-check/{{jobId}}/customer'
+order: 10000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"userId":"{{userId}}","inSafeLocation":true,"notStandingBehindVehicle":true,"willVerifyIdentity":true}'
+description: '3 safety items customer must confirm. Required before job confirmation.'

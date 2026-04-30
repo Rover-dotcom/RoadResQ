@@ -1,0 +1,17 @@
+$kind: http-request
+name: Update Driver Profile
+method: PUT
+url: '{{base_url}}/api/drivers/{{driverId}}'
+order: 10000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "truckModel": "MAN TGX 35.500",
+      "maxCapacityKg": 18000,
+      "equipmentTypes": ["boom_truck", "flatbed", "winch"],
+      "licenseExpiry": "2028-12-31"
+    }

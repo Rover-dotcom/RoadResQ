@@ -1,0 +1,6 @@
+$kind: http-request
+name: Match Drivers for Job
+method: GET
+url: '{{base_url}}/api/jobs/{{jobId}}/match'
+order: 3000
+description: 'Returns ranked list of matching drivers with _matchedOn debug info showing why each driver qualifies.'

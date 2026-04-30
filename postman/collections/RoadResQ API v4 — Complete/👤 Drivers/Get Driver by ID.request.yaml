@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get Driver by ID
+method: GET
+url: '{{base_url}}/api/drivers/{{driverId}}'
+order: 4000

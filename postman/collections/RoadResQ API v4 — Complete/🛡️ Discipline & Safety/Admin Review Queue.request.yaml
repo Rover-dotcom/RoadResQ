@@ -1,0 +1,6 @@
+$kind: http-request
+name: Admin Review Queue
+method: GET
+url: '{{base_url}}/api/discipline/admin-review'
+order: 7000
+description: 'Custom/Others jobs system could not auto-match. Admin manually assigns driver.'

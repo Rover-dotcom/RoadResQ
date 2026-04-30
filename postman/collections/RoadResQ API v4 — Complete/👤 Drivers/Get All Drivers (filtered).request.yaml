@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Get All Drivers (filtered)'
+method: GET
+url: '{{base_url}}/api/drivers?isOnline=true&truckType=standard_tow&isApproved=true'
+order: 3000
+queryParams:
+  - key: isOnline
+    value: 'true'
+  - key: truckType
+    value: standard_tow
+  - key: isApproved
+    value: 'true'

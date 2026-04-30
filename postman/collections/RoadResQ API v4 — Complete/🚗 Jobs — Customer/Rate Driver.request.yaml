@@ -1,0 +1,12 @@
+$kind: http-request
+name: Rate Driver
+method: PUT
+url: '{{base_url}}/api/jobs/{{jobId}}/rate-driver'
+order: 9000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{ "rating": 5 }'
+description: 'Rate driver 1–5 after job is completed.'

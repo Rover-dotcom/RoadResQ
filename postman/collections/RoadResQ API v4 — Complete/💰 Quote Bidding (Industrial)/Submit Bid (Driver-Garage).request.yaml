@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Submit Bid (Driver/Garage)'
+method: POST
+url: '{{base_url}}/api/quotes/{{quoteId}}/bid'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: '{"garageId":"{{garageId}}","bidderName":"Al Rayyan Heavy Transport","price":85000,"etaMinutes":45,"equipment":["boom_truck","flatbed"],"notes":"Includes crane operator. Price valid 48hrs.","rating":4.8,"vehicleModel":"Volvo FH16 Flatbed"}'
+description: 'price in halala: 85000 = QR 850.00. Multiple bidders allowed. Quote status becomes collecting_bids.'

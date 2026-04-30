@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Create Job (Heavy — JCB 3CX)'
+method: POST
+url: '{{base_url}}/api/jobs'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "{{userId}}",
+      "vehicleType": "JCB 3CX Backhoe",
+      "pickup": "Lusail Construction Site",
+      "drop": "Equipment Storage, Ras Laffan",
+      "pickupCoords": { "lat": 25.4337, "lng": 51.5063 },
+      "distanceKm": 65,
+      "clearanceHeightMm": 2900,
+      "isRestrictedArea": false
+    }
+description: 'Creates heavy equipment job. System derives flatbed_heavy + boom_truck or flatbed requirement.'

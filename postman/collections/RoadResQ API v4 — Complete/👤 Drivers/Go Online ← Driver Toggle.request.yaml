@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Go Online ← Driver Toggle'
+method: PUT
+url: '{{base_url}}/api/drivers/{{driverId}}/online'
+order: 6000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "lastLocation": { "lat": 25.2854, "lng": 51.5310 }
+    }
+description: 'Sets isOnline=true, isAvailable=true. Blocked if not approved, suspended, or compliance blocked.'

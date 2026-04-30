@@ -1,0 +1,8 @@
+$kind: http-request
+name: All Jobs Report
+method: GET
+url: '{{base_url}}/api/jobs?status=completed'
+order: 1000
+queryParams:
+  - key: status
+    value: completed
