@@ -1,0 +1,41 @@
+$kind: environment
+name: 'RoadResQ — PRODUCTION (Deployed)'
+values:
+  - key: base_url
+    value: 'https://api-h6acdw3itq-ww.a.run.app'
+    enabled: true
+    type: default
+  - key: idToken
+    value: ''
+    enabled: true
+    type: secret
+    description: 'Firebase ID Token — use 🔑 Firebase Token helper to get one'
+  - key: userId
+    value: ''
+    enabled: true
+    type: default
+    description: 'Firebase UID of the authenticated user'
+  - key: driverId
+    value: ''
+    enabled: true
+    type: default
+  - key: jobId
+    value: ''
+    enabled: true
+    type: default
+  - key: quoteId
+    value: ''
+    enabled: true
+    type: default
+  - key: garageRequestId
+    value: ''
+    enabled: true
+    type: default
+  - key: garageId
+    value: ''
+    enabled: true
+    type: default
+  - key: bidId
+    value: ''
+    enabled: true
+    type: default

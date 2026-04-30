@@ -1,0 +1,40 @@
+$kind: environment
+name: 'RoadResQ — LOCAL'
+values:
+  - key: base_url
+    value: 'http://localhost:3000'
+    enabled: true
+    type: default
+  - key: idToken
+    value: ''
+    enabled: true
+    type: secret
+    description: 'Firebase ID Token'
+  - key: userId
+    value: 'test_user_001'
+    enabled: true
+    type: default
+  - key: driverId
+    value: 'test_driver_001'
+    enabled: true
+    type: default
+  - key: jobId
+    value: ''
+    enabled: true
+    type: default
+  - key: quoteId
+    value: ''
+    enabled: true
+    type: default
+  - key: garageRequestId
+    value: ''
+    enabled: true
+    type: default
+  - key: garageId
+    value: 'garage_A1'
+    enabled: true
+    type: default
+  - key: bidId
+    value: ''
+    enabled: true
+    type: default

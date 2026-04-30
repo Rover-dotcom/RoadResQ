@@ -155,4 +155,18 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, getUserProfile };
+
+// ─── GET /api/auth/me ─────────────────────────────────────────────────────────
+// Called with Authorization: Bearer <token>
+// req.user is set by verifyToken middleware
+
+async function getUserProfile(req, res) {
+  try {
+    const user = await getUserById(req.user.uid);
+    if (!user) return res.status(404).json({ status: 'error', message: 'User profile not found.' });
+    return res.json({ status: 'success', data: user });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch profile.' });
+  }
+}

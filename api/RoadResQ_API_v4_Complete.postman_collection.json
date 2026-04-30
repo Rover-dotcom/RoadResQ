@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "RoadResQ API v4 \u2014 Complete",
-    "description": "RoadResQ logistics platform \u2014 All endpoints. Base URL: https://api-h6acdw3itq-ww.a.run.app\n\nKey flows:\n1. Jobs: Customer creates job \u2192 auto-dispatch \u2192 driver accepts \u2192 status updates\n2. Quotes: Customer submits \u2192 Garage responds with price \u2192 Customer accepts \u2192 Job created\n3. Garage: Customer creates repair request \u2192 Garages bid \u2192 Customer accepts estimate\n4. Drivers: Register \u2192 Approve \u2192 Go Online \u2192 Accept Jobs\n5. Discipline: No-show fees, warnings, safety checklists, compliance\n6. Bidding: Multi-driver bids on industrial quotes, customer picks best",
+    "name": "RoadResQ API v4 — Complete",
+    "description": "RoadResQ API v4.1.0 — Base URL: https://api-h6acdw3itq-ww.a.run.app\n\n🔐 AUTH: All protected routes need: Authorization: Bearer <Firebase ID Token>\nGet token from Firebase Auth (client SDK), pass to /api/auth/login to verify.\n\nFlows:\n1. Register → POST /api/auth/register (email+password creates Firebase+Firestore)\n2. Login   → POST /api/auth/login { idToken } — verifies Firebase token\n3. Profile → GET /api/auth/me (Bearer token required)\n4. Jobs    → POST /api/jobs with optional scheduledPickupDate/Time\n5. Quotes  → POST /api/quotes with preferredDate/Time\n6. Garage  → POST /api/garage-requests with preferredDate/Time\n7. Cancel  → DELETE /api/jobs/:id/cancel with cancellationReason",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "4.0.0"
+    "version": "4.1.0"
   },
   "variable": [
     {
@@ -40,14 +40,43 @@
       "key": "garageId",
       "value": "garage_A1",
       "type": "string"
+    },
+    {
+      "key": "bidId",
+      "value": "bid_001",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "\ud83d\udd10 Auth",
+      "name": "🔑 Get Firebase Token (Testing Helper)",
+      "description": "Use this to get a real Firebase ID token for Postman testing.",
       "item": [
         {
-          "name": "Register User",
+          "name": "Sign In with Firebase (get idToken)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDgQXxBGq6nXMJlGI0xaRhYqOmWmPGQxYE",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234\",\n  \"returnSecureToken\": true\n}"
+            },
+            "description": "⚠️ Replace the API key in the URL with the actual Firebase Web API Key.\nFind it: Firebase Console → Project Settings → General → Web API Key\n\nAfter running this:\n1. Copy idToken from the response\n2. Set it as {{idToken}} variable in your Postman environment\n3. Use it as: Authorization: Bearer {{idToken}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register (Email + Password)",
           "request": {
             "method": "POST",
             "header": [
@@ -59,27 +88,79 @@
             "url": "{{base_url}}/api/auth/register",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"uid\": \"firebase_uid_here\",\n  \"email\": \"user@example.com\",\n  \"name\": \"Ahmed Al-Rashidi\",\n  \"phone\": \"+974-5555-0001\",\n  \"role\": \"customer\"\n}"
+              "raw": "{\n  \"name\": \"Ahmed Al-Rashidi\",\n  \"email\": \"ahmed@example.com\",\n  \"password\": \"Test@1234\",\n  \"phone\": \"+974-5555-0001\",\n  \"role\": \"customer\"\n}"
             },
-            "description": "Register after Firebase Auth. role: customer | driver | admin"
+            "description": "Creates Firebase Auth account + Firestore user document.\nrole: customer | driver | admin | garage\n\nReturns: { uid, name, email, phone, role, createdAt }"
           }
         },
         {
-          "name": "Get User Profile",
+          "name": "Register Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mohammed Al-Qahtani\",\n  \"email\": \"driver@example.com\",\n  \"password\": \"Driver@1234\",\n  \"phone\": \"+974-5555-0099\",\n  \"role\": \"driver\"\n}"
+            },
+            "description": "Register as driver role. Then POST /api/drivers to create driver profile."
+          }
+        },
+        {
+          "name": "Login (Verify Firebase Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{idToken}}\"\n}"
+            },
+            "description": "🔐 Flutter/mobile gets idToken from Firebase Auth SDK after sign-in.\nSend it here to verify + get Firestore profile.\n\nTo get idToken in Postman for testing:\n1. Use Firebase REST API: POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSy...\n   Body: { email, password, returnSecureToken: true }\n2. Copy idToken from response\n3. Paste into {{idToken}} variable"
+          }
+        },
+        {
+          "name": "Get My Profile (Bearer Token)",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/auth/me/{{userId}}",
-            "description": "Fetch user profile by Firebase UID."
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{idToken}}"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/me",
+            "description": "🔐 Protected. Requires: Authorization: Bearer <Firebase ID Token>\nReturns full user profile from Firestore."
+          }
+        },
+        {
+          "name": "Get User by UID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/auth/user/{{userId}}",
+            "description": "Get any user profile by Firebase UID."
           }
         }
-      ]
+      ],
+      "description": "Firebase Auth flow.\n\nSteps:\n1. Register with email+password → creates Firebase Auth user + Firestore profile\n2. Use Firebase client SDK to sign in → get idToken\n3. POST /login with idToken to verify + get profile\n4. Use idToken as Bearer token for all protected routes"
     },
     {
-      "name": "\ud83d\ude97 Jobs \u2014 Customer",
+      "name": "🚗 Jobs — Customer",
       "description": "Customer-facing job endpoints. Create, track, and manage jobs.",
       "item": [
         {
-          "name": "Create Job (Tow \u2014 Sedan)",
+          "name": "Create Job (Tow — Sedan)",
           "request": {
             "method": "POST",
             "header": [
@@ -97,7 +178,7 @@
           }
         },
         {
-          "name": "Create Job (Heavy \u2014 JCB 3CX)",
+          "name": "Create Job (Heavy — JCB 3CX)",
           "request": {
             "method": "POST",
             "header": [
@@ -115,7 +196,7 @@
           }
         },
         {
-          "name": "Create Job (Basement \u2014 requires gate pass)",
+          "name": "Create Job (Basement — requires gate pass)",
           "request": {
             "method": "POST",
             "header": [
@@ -203,13 +284,6 @@
           }
         },
         {
-          "name": "Cancel Job",
-          "request": {
-            "method": "DELETE",
-            "url": "{{base_url}}/api/jobs/{{jobId}}/cancel"
-          }
-        },
-        {
           "name": "Rate Driver",
           "request": {
             "method": "PUT",
@@ -224,13 +298,49 @@
               "mode": "raw",
               "raw": "{ \"rating\": 5 }"
             },
-            "description": "Rate driver 1\u20135 after job is completed."
+            "description": "Rate driver 1–5 after job is completed."
+          }
+        },
+        {
+          "name": "Create Job (SCHEDULED — Tow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/jobs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"vehicleType\": \"Sedan\",\n  \"pickup\": \"The Pearl Qatar, Doha\",\n  \"drop\": \"Al Sadd Service Center\",\n  \"pickupCoords\": {\n    \"lat\": 25.3713,\n    \"lng\": 51.5509\n  },\n  \"distanceKm\": 6.2,\n  \"isScheduled\": true,\n  \"scheduledPickupDate\": \"2026-05-15\",\n  \"scheduledPickupTime\": \"09:00\",\n  \"customerNotes\": \"Please arrive on time, I have a meeting at 10am\"\n}"
+            },
+            "description": "📅 Scheduled job — driver assigned closer to pickup date.\nResponse includes dispatchStatus.isScheduled=true with confirmation message.\n\nscheduledPickupDate: YYYY-MM-DD format\nscheduledPickupTime: HH:MM (24h, Qatar time)"
+          }
+        },
+        {
+          "name": "Cancel Job (with Reason)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/jobs/{{jobId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"customer_request\",\n  \"cancelledBy\": \"customer\"\n}"
+            },
+            "description": "Cancel a job. Releases assigned driver.\ncancellationReason: customer_request | no_driver_available | driver_no_show | changed_mind\ncancelledBy: customer | driver | system"
           }
         }
       ]
     },
     {
-      "name": "\ud83d\ude9b Jobs \u2014 Driver",
+      "name": "🚛 Jobs — Driver",
       "description": "Driver-facing job endpoints.",
       "item": [
         {
@@ -293,13 +403,13 @@
               "mode": "raw",
               "raw": "{\n  \"status\": \"in_progress\",\n  \"note\": \"Vehicle loaded on flatbed\"\n}"
             },
-            "description": "Valid statuses: pending \u2192 assigned \u2192 accepted \u2192 in_progress \u2192 on_site \u2192 at_garage \u2192 completed | cancelled"
+            "description": "Valid statuses: pending → assigned → accepted → in_progress → on_site → at_garage → completed | cancelled"
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udd0d Matching & Pricing",
+      "name": "🔍 Matching & Pricing",
       "description": "Service catalog, price calculator, and matching engine.",
       "item": [
         {
@@ -349,8 +459,8 @@
       ]
     },
     {
-      "name": "\ud83d\udccb Quotes",
-      "description": "Quote flow \u2014 GARAGE DRIVEN. Admin is read-only.\n\nFlow: Customer submits \u2192 Garage responds with price \u2192 Customer accepts \u2192 Job created.",
+      "name": "📋 Quotes",
+      "description": "Quote flow — GARAGE DRIVEN. Admin is read-only.\n\nFlow: Customer submits → Garage responds with price → Customer accepts → Job created.",
       "item": [
         {
           "name": "Submit Quote Request (Customer)",
@@ -365,9 +475,9 @@
             "url": "{{base_url}}/api/quotes",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"quote_industrial\",\n  \"vehicleType\": \"20ft Container\",\n  \"itemDescription\": \"20ft shipping container, loaded with office furniture\",\n  \"pickup\": \"Hamad Port, Doha\",\n  \"drop\": \"Al Khor Industrial Zone\",\n  \"pickupCoords\": { \"lat\": 25.1135, \"lng\": 51.5522 },\n  \"estimatedWeight\": 12000,\n  \"urgency\": \"medium\",\n  \"customerNotes\": \"Available from 8am onwards\"\n}"
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"quote_industrial\",\n  \"vehicleType\": \"20ft Container\",\n  \"itemDescription\": \"20ft shipping container, loaded with office furniture\",\n  \"pickup\": \"Hamad Port, Doha\",\n  \"drop\": \"Al Khor Industrial Zone\",\n  \"pickupCoords\": {\n    \"lat\": 25.1135,\n    \"lng\": 51.5522\n  },\n  \"estimatedWeight\": 12000,\n  \"urgency\": \"medium\",\n  \"preferredDate\": \"2026-05-10\",\n  \"preferredTime\": \"08:00\",\n  \"customerNotes\": \"Available from 8am onwards\"\n}"
             },
-            "description": "Auto-broadcasts to nearby garages within 15km. Returns broadcastCount."
+            "description": "Submit industrial quote. preferredDate/Time optional for scheduling.\nBroadcasts to nearby garages within 15km."
           }
         },
         {
@@ -402,7 +512,7 @@
           }
         },
         {
-          "name": "Garage Responds with Price \u2190 GARAGE ONLY",
+          "name": "Garage Responds with Price ← GARAGE ONLY",
           "request": {
             "method": "PUT",
             "header": [
@@ -416,7 +526,7 @@
               "mode": "raw",
               "raw": "{\n  \"garageId\": \"{{garageId}}\",\n  \"garageName\": \"Al Rayyan Heavy Transport\",\n  \"quotedPrice\": 85000,\n  \"garageNotes\": \"Includes specialized flatbed + crane operator. Price valid for 48hrs.\"\n}"
             },
-            "description": "GARAGE ONLY \u2014 Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00"
+            "description": "GARAGE ONLY — Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00"
           }
         },
         {
@@ -470,14 +580,14 @@
                 }
               ]
             },
-            "description": "Admin report endpoint \u2014 read only. Filter by userId, garageId, status."
+            "description": "Admin report endpoint — read only. Filter by userId, garageId, status."
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udd27 Garage (On-Site Repair)",
-      "description": "On-site repair flow. Customer requests \u2192 Garages bid estimates \u2192 Customer picks one.",
+      "name": "🔧 Garage (On-Site Repair)",
+      "description": "On-site repair flow. Customer requests → Garages bid estimates → Customer picks one.",
       "item": [
         {
           "name": "Create Repair Request (Customer)",
@@ -492,9 +602,9 @@
             "url": "{{base_url}}/api/garage-requests",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"Battery dead\",\n  \"location\": { \"lat\": 25.2854, \"lng\": 51.5310 },\n  \"contactInfo\": { \"name\": \"Ahmed\", \"phone\": \"+974-5555-0001\" },\n  \"additionalNotes\": \"Car is in Villaggio Mall parking level 2\"\n}"
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"Flat Tyre\",\n  \"location\": {\n    \"lat\": 25.2854,\n    \"lng\": 51.531\n  },\n  \"additionalNotes\": \"Front left tyre completely flat\",\n  \"isScheduled\": false,\n  \"preferredDate\": null,\n  \"preferredTime\": null,\n  \"contactInfo\": {\n    \"name\": \"Ahmed\",\n    \"phone\": \"+974-5555-0001\"\n  }\n}"
             },
-            "description": "Broadcasts to garages within 10km. Returns broadcastCount and autoCancelAt."
+            "description": "Request on-site repair. Broadcasts to garages within 10km.\nisScheduled: true = future booking (autoCancelAt disabled until scheduled time)\npreferredDate: YYYY-MM-DD, preferredTime: HH:MM"
           }
         },
         {
@@ -556,7 +666,7 @@
               "mode": "raw",
               "raw": "{\n  \"status\": \"in_progress\",\n  \"garageSafetyChecklist\": {\n    \"areaIsSafe\": true,\n    \"vehicleSecured\": true,\n    \"properToolsUsed\": true,\n    \"hazardLightsOn\": true\n  }\n}"
             },
-            "description": "Status flow: accepted \u2192 on_the_way \u2192 in_progress \u2192 completed | cancelled"
+            "description": "Status flow: accepted → on_the_way → in_progress → completed | cancelled"
           }
         },
         {
@@ -588,11 +698,29 @@
               ]
             }
           }
+        },
+        {
+          "name": "Create Garage Request (SCHEDULED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/garage-requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"AC Not Working\",\n  \"location\": {\n    \"lat\": 25.2854,\n    \"lng\": 51.531\n  },\n  \"additionalNotes\": \"AC stopped blowing cold air\",\n  \"isScheduled\": true,\n  \"preferredDate\": \"2026-05-12\",\n  \"preferredTime\": \"10:30\",\n  \"contactInfo\": {\n    \"name\": \"Ahmed\",\n    \"phone\": \"+974-5555-0001\"\n  }\n}"
+            },
+            "description": "📅 Scheduled garage repair request.\nGarages notified but auto-cancel timer not started until scheduled date."
+          }
         }
       ]
     },
     {
-      "name": "\ud83d\udc64 Drivers",
+      "name": "👤 Drivers",
       "description": "Driver management, status, and online/offline control.",
       "item": [
         {
@@ -667,7 +795,7 @@
           }
         },
         {
-          "name": "Go Online \u2190 Driver Toggle",
+          "name": "Go Online ← Driver Toggle",
           "request": {
             "method": "PUT",
             "header": [
@@ -685,7 +813,7 @@
           }
         },
         {
-          "name": "Go Offline \u2190 Driver Toggle",
+          "name": "Go Offline ← Driver Toggle",
           "request": {
             "method": "PUT",
             "header": [
@@ -753,8 +881,8 @@
       ]
     },
     {
-      "name": "\ud83d\udcca Admin Reports",
-      "description": "Admin-only read access. No write operations \u2014 use garage/driver endpoints for changes.",
+      "name": "📊 Admin Reports",
+      "description": "Admin-only read access. No write operations — use garage/driver endpoints for changes.",
       "item": [
         {
           "name": "All Jobs Report",
@@ -820,7 +948,7 @@
       ]
     },
     {
-      "name": "\ud83d\udee1\ufe0f Discipline & Safety",
+      "name": "🛡️ Discipline & Safety",
       "description": "Driver discipline, compliance, safety checklists, and priority queue.",
       "item": [
         {
@@ -878,7 +1006,7 @@
           }
         },
         {
-          "name": "Compliance Check \u2014 All Drivers",
+          "name": "Compliance Check — All Drivers",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/discipline/compliance-check",
@@ -974,7 +1102,7 @@
       ]
     },
     {
-      "name": "\ud83d\udcb0 Quote Bidding (Industrial)",
+      "name": "💰 Quote Bidding (Industrial)",
       "description": "Multi-driver bidding for industrial/heavy quotes. Customer compares bids and accepts the best.",
       "item": [
         {

@@ -1,45 +1,159 @@
 {
   "info": {
     "name": "RoadResQ API v4 — Complete",
-    "description": "RoadResQ logistics platform — All endpoints. Base URL: https://api-h6acdw3itq-ww.a.run.app\n\nKey flows:\n1. Jobs: Customer creates job → auto-dispatch → driver accepts → status updates\n2. Quotes: Customer submits → Garage responds with price → Customer accepts → Job created\n3. Garage: Customer creates repair request → Garages bid → Customer accepts estimate\n4. Drivers: Register → Approve → Go Online → Accept Jobs",
+    "description": "RoadResQ API v4.1.0 — Base URL: https://api-h6acdw3itq-ww.a.run.app\n\n🔐 AUTH: All protected routes need: Authorization: Bearer <Firebase ID Token>\nGet token from Firebase Auth (client SDK), pass to /api/auth/login to verify.\n\nFlows:\n1. Register → POST /api/auth/register (email+password creates Firebase+Firestore)\n2. Login   → POST /api/auth/login { idToken } — verifies Firebase token\n3. Profile → GET /api/auth/me (Bearer token required)\n4. Jobs    → POST /api/jobs with optional scheduledPickupDate/Time\n5. Quotes  → POST /api/quotes with preferredDate/Time\n6. Garage  → POST /api/garage-requests with preferredDate/Time\n7. Cancel  → DELETE /api/jobs/:id/cancel with cancellationReason",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "4.0.0"
+    "version": "4.1.0"
   },
   "variable": [
-    { "key": "base_url", "value": "https://api-h6acdw3itq-ww.a.run.app", "type": "string" },
-    { "key": "userId", "value": "user_001", "type": "string" },
-    { "key": "driverId", "value": "driver_001", "type": "string" },
-    { "key": "jobId", "value": "job_001", "type": "string" },
-    { "key": "quoteId", "value": "quote_001", "type": "string" },
-    { "key": "garageRequestId", "value": "garage_001", "type": "string" },
-    { "key": "garageId", "value": "garage_A1", "type": "string" }
+    {
+      "key": "base_url",
+      "value": "https://api-h6acdw3itq-ww.a.run.app",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user_001",
+      "type": "string"
+    },
+    {
+      "key": "driverId",
+      "value": "driver_001",
+      "type": "string"
+    },
+    {
+      "key": "jobId",
+      "value": "job_001",
+      "type": "string"
+    },
+    {
+      "key": "quoteId",
+      "value": "quote_001",
+      "type": "string"
+    },
+    {
+      "key": "garageRequestId",
+      "value": "garage_001",
+      "type": "string"
+    },
+    {
+      "key": "garageId",
+      "value": "garage_A1",
+      "type": "string"
+    },
+    {
+      "key": "bidId",
+      "value": "bid_001",
+      "type": "string"
+    }
   ],
   "item": [
+    {
+      "name": "🔑 Get Firebase Token (Testing Helper)",
+      "description": "Use this to get a real Firebase ID token for Postman testing.",
+      "item": [
+        {
+          "name": "Sign In with Firebase (get idToken)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDgQXxBGq6nXMJlGI0xaRhYqOmWmPGQxYE",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234\",\n  \"returnSecureToken\": true\n}"
+            },
+            "description": "⚠️ Replace the API key in the URL with the actual Firebase Web API Key.\nFind it: Firebase Console → Project Settings → General → Web API Key\n\nAfter running this:\n1. Copy idToken from the response\n2. Set it as {{idToken}} variable in your Postman environment\n3. Use it as: Authorization: Bearer {{idToken}}"
+          }
+        }
+      ]
+    },
     {
       "name": "🔐 Auth",
       "item": [
         {
-          "name": "Register User",
+          "name": "Register (Email + Password)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/auth/register",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"uid\": \"firebase_uid_here\",\n  \"email\": \"user@example.com\",\n  \"name\": \"Ahmed Al-Rashidi\",\n  \"phone\": \"+974-5555-0001\",\n  \"role\": \"customer\"\n}"
+              "raw": "{\n  \"name\": \"Ahmed Al-Rashidi\",\n  \"email\": \"ahmed@example.com\",\n  \"password\": \"Test@1234\",\n  \"phone\": \"+974-5555-0001\",\n  \"role\": \"customer\"\n}"
             },
-            "description": "Register after Firebase Auth. role: customer | driver | admin"
+            "description": "Creates Firebase Auth account + Firestore user document.\nrole: customer | driver | admin | garage\n\nReturns: { uid, name, email, phone, role, createdAt }"
           }
         },
         {
-          "name": "Get User Profile",
+          "name": "Register Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mohammed Al-Qahtani\",\n  \"email\": \"driver@example.com\",\n  \"password\": \"Driver@1234\",\n  \"phone\": \"+974-5555-0099\",\n  \"role\": \"driver\"\n}"
+            },
+            "description": "Register as driver role. Then POST /api/drivers to create driver profile."
+          }
+        },
+        {
+          "name": "Login (Verify Firebase Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{idToken}}\"\n}"
+            },
+            "description": "🔐 Flutter/mobile gets idToken from Firebase Auth SDK after sign-in.\nSend it here to verify + get Firestore profile.\n\nTo get idToken in Postman for testing:\n1. Use Firebase REST API: POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSy...\n   Body: { email, password, returnSecureToken: true }\n2. Copy idToken from response\n3. Paste into {{idToken}} variable"
+          }
+        },
+        {
+          "name": "Get My Profile (Bearer Token)",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/auth/me/{{userId}}",
-            "description": "Fetch user profile by Firebase UID."
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{idToken}}"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/me",
+            "description": "🔐 Protected. Requires: Authorization: Bearer <Firebase ID Token>\nReturns full user profile from Firestore."
+          }
+        },
+        {
+          "name": "Get User by UID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/auth/user/{{userId}}",
+            "description": "Get any user profile by Firebase UID."
           }
         }
-      ]
+      ],
+      "description": "Firebase Auth flow.\n\nSteps:\n1. Register with email+password → creates Firebase Auth user + Firestore profile\n2. Use Firebase client SDK to sign in → get idToken\n3. POST /login with idToken to verify + get profile\n4. Use idToken as Bearer token for all protected routes"
     },
     {
       "name": "🚗 Jobs — Customer",
@@ -49,7 +163,12 @@
           "name": "Create Job (Tow — Sedan)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs",
             "body": {
               "mode": "raw",
@@ -62,7 +181,12 @@
           "name": "Create Job (Heavy — JCB 3CX)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs",
             "body": {
               "mode": "raw",
@@ -75,7 +199,12 @@
           "name": "Create Job (Basement — requires gate pass)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs",
             "body": {
               "mode": "raw",
@@ -90,11 +219,24 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs/my-jobs?userId={{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs", "my-jobs"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                "my-jobs"
+              ],
               "query": [
-                { "key": "userId", "value": "{{userId}}" },
-                { "key": "status", "value": "pending", "disabled": true }
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                }
               ]
             },
             "description": "Customer sees all their jobs with human-readable status messages and driver info. Filter by status (optional)."
@@ -114,11 +256,22 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs?userId={{userId}}&status=pending",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs"
+              ],
               "query": [
-                { "key": "userId", "value": "{{userId}}" },
-                { "key": "status", "value": "pending" }
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
               ]
             }
           }
@@ -131,23 +284,57 @@
           }
         },
         {
-          "name": "Cancel Job",
-          "request": {
-            "method": "DELETE",
-            "url": "{{base_url}}/api/jobs/{{jobId}}/cancel"
-          }
-        },
-        {
           "name": "Rate Driver",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs/{{jobId}}/rate-driver",
             "body": {
               "mode": "raw",
               "raw": "{ \"rating\": 5 }"
             },
             "description": "Rate driver 1–5 after job is completed."
+          }
+        },
+        {
+          "name": "Create Job (SCHEDULED — Tow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/jobs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"vehicleType\": \"Sedan\",\n  \"pickup\": \"The Pearl Qatar, Doha\",\n  \"drop\": \"Al Sadd Service Center\",\n  \"pickupCoords\": {\n    \"lat\": 25.3713,\n    \"lng\": 51.5509\n  },\n  \"distanceKm\": 6.2,\n  \"isScheduled\": true,\n  \"scheduledPickupDate\": \"2026-05-15\",\n  \"scheduledPickupTime\": \"09:00\",\n  \"customerNotes\": \"Please arrive on time, I have a meeting at 10am\"\n}"
+            },
+            "description": "📅 Scheduled job — driver assigned closer to pickup date.\nResponse includes dispatchStatus.isScheduled=true with confirmation message.\n\nscheduledPickupDate: YYYY-MM-DD format\nscheduledPickupTime: HH:MM (24h, Qatar time)"
+          }
+        },
+        {
+          "name": "Cancel Job (with Reason)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/jobs/{{jobId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"customer_request\",\n  \"cancelledBy\": \"customer\"\n}"
+            },
+            "description": "Cancel a job. Releases assigned driver.\ncancellationReason: customer_request | no_driver_available | driver_no_show | changed_mind\ncancelledBy: customer | driver | system"
           }
         }
       ]
@@ -162,11 +349,23 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs/available?truckType=standard_tow&serviceType=tow",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs", "available"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                "available"
+              ],
               "query": [
-                { "key": "truckType", "value": "standard_tow" },
-                { "key": "serviceType", "value": "tow" }
+                {
+                  "key": "truckType",
+                  "value": "standard_tow"
+                },
+                {
+                  "key": "serviceType",
+                  "value": "tow"
+                }
               ]
             },
             "description": "Returns open jobs that match the driver's truck type. Driver app polls or listens to this."
@@ -176,7 +375,12 @@
           "name": "Accept Job",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs/{{jobId}}/accept",
             "body": {
               "mode": "raw",
@@ -188,7 +392,12 @@
           "name": "Update Job Status",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/jobs/{{jobId}}/status",
             "body": {
               "mode": "raw",
@@ -217,11 +426,23 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs/price-estimate?vehicleType=Sedan&distanceKm=10",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs", "price-estimate"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                "price-estimate"
+              ],
               "query": [
-                { "key": "vehicleType", "value": "Sedan" },
-                { "key": "distanceKm", "value": "10" }
+                {
+                  "key": "vehicleType",
+                  "value": "Sedan"
+                },
+                {
+                  "key": "distanceKm",
+                  "value": "10"
+                }
               ]
             },
             "description": "Price breakdown in QAR halala. Divide by 100 for display. e.g. 4500 = QR 45.00"
@@ -245,13 +466,18 @@
           "name": "Submit Quote Request (Customer)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"quote_industrial\",\n  \"vehicleType\": \"20ft Container\",\n  \"itemDescription\": \"20ft shipping container, loaded with office furniture\",\n  \"pickup\": \"Hamad Port, Doha\",\n  \"drop\": \"Al Khor Industrial Zone\",\n  \"pickupCoords\": { \"lat\": 25.1135, \"lng\": 51.5522 },\n  \"estimatedWeight\": 12000,\n  \"urgency\": \"medium\",\n  \"customerNotes\": \"Available from 8am onwards\"\n}"
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"quote_industrial\",\n  \"vehicleType\": \"20ft Container\",\n  \"itemDescription\": \"20ft shipping container, loaded with office furniture\",\n  \"pickup\": \"Hamad Port, Doha\",\n  \"drop\": \"Al Khor Industrial Zone\",\n  \"pickupCoords\": {\n    \"lat\": 25.1135,\n    \"lng\": 51.5522\n  },\n  \"estimatedWeight\": 12000,\n  \"urgency\": \"medium\",\n  \"preferredDate\": \"2026-05-10\",\n  \"preferredTime\": \"08:00\",\n  \"customerNotes\": \"Available from 8am onwards\"\n}"
             },
-            "description": "Auto-broadcasts to nearby garages within 15km. Returns broadcastCount."
+            "description": "Submit industrial quote. preferredDate/Time optional for scheduling.\nBroadcasts to nearby garages within 15km."
           }
         },
         {
@@ -260,9 +486,20 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/quotes/my-quotes?userId={{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "quotes", "my-quotes"],
-              "query": [{ "key": "userId", "value": "{{userId}}" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "quotes",
+                "my-quotes"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
             },
             "description": "Customer's quotes with status messages. Shows what garage responded and at what price."
           }
@@ -278,7 +515,12 @@
           "name": "Garage Responds with Price ← GARAGE ONLY",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/respond",
             "body": {
               "mode": "raw",
@@ -291,7 +533,12 @@
           "name": "Accept Quote (Customer)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/accept",
             "description": "Creates a job from the accepted quote and auto-assigns driver. Returns dispatchStatus."
           }
@@ -300,7 +547,12 @@
           "name": "Reject Quote (Customer)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/reject",
             "body": {
               "mode": "raw",
@@ -314,9 +566,19 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/quotes?status=pending",
-              "host": ["{{base_url}}"],
-              "path": ["api", "quotes"],
-              "query": [{ "key": "status", "value": "pending" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "quotes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
             },
             "description": "Admin report endpoint — read only. Filter by userId, garageId, status."
           }
@@ -331,20 +593,30 @@
           "name": "Create Repair Request (Customer)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"Battery dead\",\n  \"location\": { \"lat\": 25.2854, \"lng\": 51.5310 },\n  \"contactInfo\": { \"name\": \"Ahmed\", \"phone\": \"+974-5555-0001\" },\n  \"additionalNotes\": \"Car is in Villaggio Mall parking level 2\"\n}"
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"Flat Tyre\",\n  \"location\": {\n    \"lat\": 25.2854,\n    \"lng\": 51.531\n  },\n  \"additionalNotes\": \"Front left tyre completely flat\",\n  \"isScheduled\": false,\n  \"preferredDate\": null,\n  \"preferredTime\": null,\n  \"contactInfo\": {\n    \"name\": \"Ahmed\",\n    \"phone\": \"+974-5555-0001\"\n  }\n}"
             },
-            "description": "Broadcasts to garages within 10km. Returns broadcastCount and autoCancelAt."
+            "description": "Request on-site repair. Broadcasts to garages within 10km.\nisScheduled: true = future booking (autoCancelAt disabled until scheduled time)\npreferredDate: YYYY-MM-DD, preferredTime: HH:MM"
           }
         },
         {
           "name": "Submit Estimate (Garage)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests/{{garageRequestId}}/estimate",
             "body": {
               "mode": "raw",
@@ -365,7 +637,12 @@
           "name": "Accept Estimate (Customer)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests/{{garageRequestId}}/accept",
             "body": {
               "mode": "raw",
@@ -378,7 +655,12 @@
           "name": "Update Request Status",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/garage-requests/{{garageRequestId}}/status",
             "body": {
               "mode": "raw",
@@ -401,10 +683,38 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/garage-requests?userId={{userId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "garage-requests"],
-              "query": [{ "key": "userId", "value": "{{userId}}" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "garage-requests"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
             }
+          }
+        },
+        {
+          "name": "Create Garage Request (SCHEDULED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/garage-requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"AC Not Working\",\n  \"location\": {\n    \"lat\": 25.2854,\n    \"lng\": 51.531\n  },\n  \"additionalNotes\": \"AC stopped blowing cold air\",\n  \"isScheduled\": true,\n  \"preferredDate\": \"2026-05-12\",\n  \"preferredTime\": \"10:30\",\n  \"contactInfo\": {\n    \"name\": \"Ahmed\",\n    \"phone\": \"+974-5555-0001\"\n  }\n}"
+            },
+            "description": "📅 Scheduled garage repair request.\nGarages notified but auto-cancel timer not started until scheduled date."
           }
         }
       ]
@@ -417,7 +727,12 @@
           "name": "Register Driver Profile",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers",
             "body": {
               "mode": "raw",
@@ -440,12 +755,26 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/drivers?isOnline=true&truckType=standard_tow&isApproved=true",
-              "host": ["{{base_url}}"],
-              "path": ["api", "drivers"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "drivers"
+              ],
               "query": [
-                { "key": "isOnline", "value": "true" },
-                { "key": "truckType", "value": "standard_tow" },
-                { "key": "isApproved", "value": "true" }
+                {
+                  "key": "isOnline",
+                  "value": "true"
+                },
+                {
+                  "key": "truckType",
+                  "value": "standard_tow"
+                },
+                {
+                  "key": "isApproved",
+                  "value": "true"
+                }
               ]
             }
           }
@@ -469,7 +798,12 @@
           "name": "Go Online ← Driver Toggle",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}/online",
             "body": {
               "mode": "raw",
@@ -482,7 +816,12 @@
           "name": "Go Offline ← Driver Toggle",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}/offline",
             "description": "Sets isOnline=false, isAvailable=false. Blocked if driver has an active job."
           }
@@ -491,7 +830,12 @@
           "name": "Set Status (Legacy)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/status",
             "body": {
               "mode": "raw",
@@ -504,7 +848,12 @@
           "name": "Approve Driver (Admin)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}/approve",
             "body": {
               "mode": "raw",
@@ -516,7 +865,12 @@
           "name": "Update Driver Profile",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/api/drivers/{{driverId}}",
             "body": {
               "mode": "raw",
@@ -536,9 +890,19 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/jobs?status=completed",
-              "host": ["{{base_url}}"],
-              "path": ["api", "jobs"],
-              "query": [{ "key": "status", "value": "completed" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "jobs"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
             }
           }
         },
@@ -564,11 +928,221 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/api/drivers?isApproved=false",
-              "host": ["{{base_url}}"],
-              "path": ["api", "drivers"],
-              "query": [{ "key": "isApproved", "value": "false" }]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "drivers"
+              ],
+              "query": [
+                {
+                  "key": "isApproved",
+                  "value": "false"
+                }
+              ]
             },
             "description": "Pending driver approvals."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛡️ Discipline & Safety",
+      "description": "Driver discipline, compliance, safety checklists, and priority queue.",
+      "item": [
+        {
+          "name": "Apply No-Show Fee (Customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/no-show",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jobId\":\"{{jobId}}\",\"customerId\":\"{{userId}}\",\"driverId\":\"{{driverId}}\"}"
+            },
+            "description": "Charges QR 50 (5000 halala) when customer does not respond within 10 minutes of driver arrival."
+          }
+        },
+        {
+          "name": "Issue Late Warning (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/warning/{{driverId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jobId\":\"{{jobId}}\",\"reason\":\"Driver arrived 20 minutes after ETA\"}"
+            },
+            "description": "Adds 1 warning to driver. At 3 warnings account is auto-suspended."
+          }
+        },
+        {
+          "name": "Clear Suspension (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/clear/{{driverId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"adminNote\":\"Driver completed retraining. Suspension cleared.\"}"
+            },
+            "description": "Resets warning count and lifts suspension."
+          }
+        },
+        {
+          "name": "Compliance Check — All Drivers",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/discipline/compliance-check",
+            "description": "Scans all drivers: 30-day notice, 7-day critical, expired = blocked. Run daily via scheduler."
+          }
+        },
+        {
+          "name": "Driver Compliance Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/compliance/{{driverId}}",
+            "description": "Returns overallStatus: valid | expiring_soon | expiring_critical | expired. Shows days remaining per document."
+          }
+        },
+        {
+          "name": "Priority Queue (Dispatch)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/priority-queue",
+            "description": "All pending jobs scored by urgency + wait time. Highest score dispatched first."
+          }
+        },
+        {
+          "name": "Admin Review Queue",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/admin-review",
+            "description": "Custom/Others jobs system could not auto-match. Admin manually assigns driver."
+          }
+        },
+        {
+          "name": "Admin Assign Job (Others)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/admin-review/{{jobId}}/assign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"driverId\":\"{{driverId}}\",\"adminNote\":\"Manually assigned specialized crane truck.\"}"
+            },
+            "description": "Admin assigns driver to custom job. Marks admin_review_queue resolved."
+          }
+        },
+        {
+          "name": "Driver Safety Check (Pre-Trip)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/safety-check/{{jobId}}/driver",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"driverId\":\"{{driverId}}\",\"hookSecured\":true,\"winchLocked\":true,\"safetyLightsOn\":true,\"areaIsSafe\":true,\"vehicleSecured\":true,\"hazardLightsOn\":true,\"properToolsUsed\":true}"
+            },
+            "description": "All 7 items must be true before job can start. Returns 400 with failedChecks list if any missing."
+          }
+        },
+        {
+          "name": "Customer Safety Confirmation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/discipline/safety-check/{{jobId}}/customer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\":\"{{userId}}\",\"inSafeLocation\":true,\"notStandingBehindVehicle\":true,\"willVerifyIdentity\":true}"
+            },
+            "description": "3 safety items customer must confirm. Required before job confirmation."
+          }
+        },
+        {
+          "name": "Get Safety Checks for Job",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/discipline/safety-check/{{jobId}}",
+            "description": "Returns both driver pre-trip and customer confirmation records. bothCompleted flag for UI."
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Quote Bidding (Industrial)",
+      "description": "Multi-driver bidding for industrial/heavy quotes. Customer compares bids and accepts the best.",
+      "item": [
+        {
+          "name": "Submit Bid (Driver/Garage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/quotes/{{quoteId}}/bid",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"garageId\":\"{{garageId}}\",\"bidderName\":\"Al Rayyan Heavy Transport\",\"price\":85000,\"etaMinutes\":45,\"equipment\":[\"boom_truck\",\"flatbed\"],\"notes\":\"Includes crane operator. Price valid 48hrs.\",\"rating\":4.8,\"vehicleModel\":\"Volvo FH16 Flatbed\"}"
+            },
+            "description": "price in halala: 85000 = QR 850.00. Multiple bidders allowed. Quote status becomes collecting_bids."
+          }
+        },
+        {
+          "name": "View All Bids (Customer)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/quotes/{{quoteId}}/bids",
+            "description": "Sorted by price ASC. isBestPrice and isFastestArrival flags highlight top bids. Returns lowestPriceDisplay."
+          }
+        },
+        {
+          "name": "Accept Winning Bid (Customer)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/quotes/{{quoteId}}/bids/BID_ID_HERE/accept",
+            "description": "Accepts winning bid, rejects all others automatically, creates linked job with bid price and ETA."
           }
         }
       ]
