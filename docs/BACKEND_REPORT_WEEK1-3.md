@@ -101,9 +101,6 @@ backend-dev branch → /backend/
 ### 1. Category Engine — How Vehicle Types Are Classified
 
 **File:** `backend/utils/categoryEngine.js` + `serviceEngine.js`
-
-When a customer books a job, the backend automatically detects what kind of service is needed based on the vehicle type. No manual input from frontend.
-
 ```
 Vehicle Type → Category → Truck Required
 
@@ -167,8 +164,6 @@ Container, Generator, Precast Block, Pallets, Industrial Others, Garage Standard
 ### 3. Matching Engine — How Drivers Are Selected
 
 **File:** `backend/utils/matchingEngine.js`
-
-When a job is created, the system automatically finds the best driver. It works in layers:
 
 ```
 LAYER 1 — Hard Filters (driver MUST pass all):
@@ -346,96 +341,8 @@ quotes/
 | Security rules | `firestore.rules` |
 | All endpoints doc | `docs/API_DOCUMENTATION.md` |
 | Frontend guide | `docs/FRONTEND_INTEGRATION.md` |
-| Postman v3 | `docs/RoadResQ_API_v3_Postman.json` |
-| Postman v4 (new) | `docs/RoadResQ_API_v4_Complete.postman_collection.json` |
-| Driver routes | `backend/routes/driverRoutes.js` |
-| Job routes | `backend/routes/jobRoutes.js` |
-| Quote routes | `backend/routes/quoteRoutes.js` |
-| Driver controller | `backend/controllers/driverController.js` |
-| Garage controller | `backend/controllers/garageController.js` |
+| Postman collection | `docs/RoadResQ_API.postman_collection.json` |
 
 ---
 
-## ✅ WEEK 3 BOSS FEEDBACK — All Items Resolved
-
-### Feedback → Resolution
-
-| Boss Comment | Resolution | Source File |
-|---|---|---|
-| "What if cars are not available for customer?" | Added `dispatchStatus` object in job creation response — explains WHY no driver found, what truck/equipment is needed, and next steps | `backend/controllers/jobController.js` |
-| "Add fallback for all: not available, taken, etc." | All job statuses now have `statusMessage` string. No driver = queued with reason. No garages = broadcasts with count | `jobController.js`, `garageController.js` |
-| "Show available jobs to customer" | Added `GET /api/jobs/my-jobs?userId=` — customer sees all their jobs with status messages | `backend/routes/jobRoutes.js` |
-| "Create an API for easy reference" | Postman v4 created: 7 folders, every endpoint with example bodies | `docs/RoadResQ_API_v4_Complete.postman_collection.json` |
-| "Chain API, matching logic, pricing, accepting jobs" | Full chain documented in Postman v4 with correct order and examples | Postman v4 |
-| "Online/offline option, driver status" | `PUT /api/drivers/:id/online`, `PUT /api/drivers/:id/offline`, `GET /api/drivers/:id/status` | `backend/controllers/driverController.js` |
-| "Quote jobs — should go to garage, not admin" | `PUT /api/quotes/:id/respond` now requires `garageId`. Admin has zero write access to quotes | `backend/controllers/quoteController.js` |
-
----
-
-## ✅ WEEK 4 ADDITIONS — Backend Intelligence Upgrades
-
-### New Endpoints Summary
-
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/jobs/my-jobs` | GET | Customer: all their jobs with status messages |
-| `/api/jobs/:id/status` | GET | Real-time job tracking + driver ETA |
-| `/api/drivers/:id/status` | GET | Full driver status + compliance check |
-| `/api/drivers/:id/online` | PUT | Driver goes online (with compliance gate) |
-| `/api/drivers/:id/offline` | PUT | Driver goes offline (blocked if active job) |
-| `/api/quotes/my-quotes` | GET | Customer: all their quotes with status messages |
-| `/api/quotes/:id/respond` | PUT | Garage responds (garageId required) |
-
-### Quote Flow (Corrected)
-
-```
-Customer → POST /api/quotes
-    ↓ Broadcasts to nearby garages (15km)
-Garage → PUT /api/quotes/:id/respond { garageId, quotedPrice }
-    ↓
-Customer → PUT /api/quotes/:id/accept
-    ↓ Creates job, auto-assigns driver using deriveJobConstraints()
-    ↓ Returns dispatchStatus (driver found or fallback explanation)
-Admin → GET /api/quotes (READ ONLY — reports)
-```
-
-### Dispatch Fallback Response (When No Driver Found)
-
-```json
-{
-  "dispatchStatus": {
-    "dispatched": false,
-    "message": "No driver is currently available for a Sedan in your area. Your job has been queued.",
-    "whatIsNeeded": {
-      "truckType": "standard_tow",
-      "equipmentTypes": [],
-      "isSpecialLoad": false
-    },
-    "nextSteps": "We will notify you as soon as a driver accepts your job."
-  }
-}
-```
-
-### Driver Status Response
-
-```json
-{
-  "canTakeJobs": true,
-  "isOnline": true,
-  "isAvailable": true,
-  "isApproved": true,
-  "compliance": {
-    "licenseExpired": false,
-    "insuranceExpired": false,
-    "visaExpired": false,
-    "roadworthinessExpired": false
-  },
-  "hasExpiredDocs": false,
-  "activeJobId": null
-}
-```
-
----
-
-*Report updated: April 27, 2026 | Backend Developer: Cedric*
-
+*Report generated: April 2026 | Backend Developer: Cedric*

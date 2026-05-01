@@ -1,18 +1,117 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 5, 30);
+
+    // ─── Helper Functions ─────────────────────────────────────────────────────
+    function isSignedIn()       { return request.auth != null; }
+    function isAdmin()          { return isSignedIn() && request.auth.token.role == 'admin'; }
+    function isOwner(uid)       { return isSignedIn() && request.auth.uid == uid; }
+    function isDriverRole()     { return isSignedIn() && request.auth.token.role == 'driver'; }
+    function isGarageRole()     { return isSignedIn() && request.auth.token.role == 'garage'; }
+
+    // ─── Users ────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read:   if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Jobs ─────────────────────────────────────────────────────────────────
+    match /jobs/{jobId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Drivers ──────────────────────────────────────────────────────────────
+    match /drivers/{driverId} {
+      allow read:   if isSignedIn();
+      allow create: if isAdmin() || (isDriverRole() && isOwner(driverId));
+      allow update: if isAdmin() || isOwner(driverId);
+      allow delete: if isAdmin();
+    }
+
+    // ─── Quotes ───────────────────────────────────────────────────────────────
+    match /quotes/{quoteId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Garage Requests ──────────────────────────────────────────────────────
+    match /garage_requests/{reqId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Incidents (Admin Safety Dashboard) ───────────────────────────────────
+    match /incidents/{incId} {
+      allow read:   if isAdmin() || isSignedIn();
+      allow create: if isSignedIn();               // any signed-in user can report
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Disputes (ADR) ───────────────────────────────────────────────────────
+    match /disputes/{dispId} {
+      allow read:   if isSignedIn();               // users can see own disputes
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Fraud Flags ──────────────────────────────────────────────────────────
+    match /fraud_flags/{flagId} {
+      allow read:   if isAdmin();
+      allow write:  if isAdmin();
+    }
+
+    // ─── Admin Alerts ─────────────────────────────────────────────────────────
+    match /admin_alerts/{alertId} {
+      allow read:   if isAdmin();
+      allow write:  if isAdmin() || isSignedIn();  // system writes, admin reads/updates
+    }
+
+    // ─── Safety Confirmations ─────────────────────────────────────────────────
+    match /safety_confirmations/{confId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Safety Feedback ──────────────────────────────────────────────────────
+    match /safety_feedback/{fbId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Discipline Logs ──────────────────────────────────────────────────────
+    match /discipline_logs/{logId} {
+      allow read:   if isAdmin() || isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Compliance Alerts ────────────────────────────────────────────────────
+    match /compliance_alerts/{alertId} {
+      allow read:   if isAdmin() || isDriverRole();
+      allow write:  if isAdmin();
+    }
+
+    // ─── Schema Reference (read-only) ─────────────────────────────────────────
+    match /_schema/{doc} {
+      allow read:   if isSignedIn();
+      allow write:  if isAdmin();
     }
   }
 }
