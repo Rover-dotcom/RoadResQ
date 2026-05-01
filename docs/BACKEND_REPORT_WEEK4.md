@@ -1,6 +1,6 @@
-# RoadResQ — Week 4 Backend Report
-**Version:** 4.0.0 (Final) · **Deployed:** Firebase Cloud Functions · **Region:** me-central1 (Doha, Qatar)  
-**Last Verified:** 2026-04-28 · Firebase deploy confirmed ✅ · GitHub committed ✅
+# RoadResQ — Week 4 Backend Report (+ Bonus Tasks)
+**Version:** v5.0.0 · **Deployed:** Firebase Cloud Functions · **Region:** me-central1 (Doha, Qatar)
+**Date Completed:** 2026-05-01 · Firebase ✅ · GitHub ✅ · Postman ✅
 
 ---
 
@@ -8,364 +8,336 @@
 
 | Resource | URL |
 |---|---|
-| **API Base** | https://api-h6acdw3itq-ww.a.run.app |
+| **Live API** | https://api-h6acdw3itq-ww.a.run.app |
 | **Health Check** | https://api-h6acdw3itq-ww.a.run.app/ |
 | **Firebase Console** | https://console.firebase.google.com/project/roadresq-bd6b0/overview |
-| **GitHub Branch** | https://github.com/Rover-dotcom/RoadResQ/tree/backend-dev/backend |
-| **API Folder (Postman)** | https://github.com/Rover-dotcom/RoadResQ/tree/backend-dev/api |
+| **GitHub Branch** | https://github.com/Rover-dotcom/RoadResQ/tree/backend-dev |
+| **Postman Collection** | `/api/RoadResQ_API_v4_Complete.postman_collection.json` |
+| **API Docs** | `/api/README.md` |
 
 ---
 
-## ✅ Week 4 Goal Checklist
+## ✅ Completion Checklist
 
-| Goal | Status |
+| Task | Status |
 |---|---|
-| 4 services fully operational (Tow, Garage, Heavy, Quote) | ✅ Done |
-| "Others" dynamic input across all service types | ✅ Done |
-| Safety system enforced (driver pre-trip + customer confirmation) | ✅ Done |
-| Smart dispatch: 10km + expertise + capacity + height | ✅ Done |
-| Special Load bidding system (multi-driver bids) | ✅ Done |
-| Equipment-based assignment | ✅ Done |
-| Quote flow: garage only, no admin involvement | ✅ Done |
-| Fallback messaging when no driver available | ✅ Done |
-| Driver discipline: warnings, auto-suspend | ✅ Done |
-| Document compliance: 30-day/7-day notify, expired = block | ✅ Done |
-| No-show fee for customer | ✅ Done |
-| Job priority queue | ✅ Done |
-| Admin review queue for custom jobs | ✅ Done |
-| All pricing in QAR halala integers | ✅ Done |
-| Postman collection updated | ✅ Done |
-| Firebase deployed | ✅ Done |
-| GitHub committed | ✅ Done |
+| 4 services: Tow, Garage, Heavy Equipment, Industrial Quote | ✅ |
+| "Others" dynamic input on all service types | ✅ |
+| Smart dispatch: 10km radius, equipment type, height, gate pass | ✅ |
+| Quote bidding system (multi-driver bids, best price highlighted) | ✅ |
+| On-site repair broadcast → estimate → customer accept | ✅ |
+| Driver discipline: 3-strike auto-suspend, no-show fee QR 50 | ✅ |
+| Document compliance: 30-day notify, 7-day critical, expired = blocked | ✅ |
+| Job priority queue + admin review queue | ✅ |
+| All pricing in QAR halala integers | ✅ |
+| Scheduled pickup date & time on all job types | ✅ |
+| Cancellation tracking (reason + who cancelled) | ✅ |
+| **Firebase Auth: Email/Password + Google Sign-In** | ✅ |
+| **Firebase token-based login (Bearer token auth)** | ✅ |
+| **Admin Safety Dashboard** | ✅ BONUS |
+| **Fraud Detection System** | ✅ BONUS |
+| **Automated Dispute Resolution (ADR)** | ✅ BONUS |
+| **Safety System 2.0 (Risk + PIN + Panic)** | ✅ BONUS |
+| Postman collection v4.1.0 (all endpoints + auth helper) | ✅ |
+| Firestore security rules deployed | ✅ |
+| Firebase deployed and live | ✅ |
+| GitHub pushed | ✅ |
 
 ---
 
-## 📂 Source File Map
+## 🔑 Key Highlights (Plain English)
 
-### Core Logic
-| File | Path | Purpose |
-|---|---|---|
-| `matchingEngine.js` | `backend/utils/matchingEngine.js` | Geo-filter, capacity, height, gate pass, doc compliance, auto-assign |
-| `pricingEngine.js` | `backend/utils/pricingEngine.js` | Integer halala pricing, distance tiers, peak-hour surcharge |
-| `serviceEngine.js` | `backend/utils/serviceEngine.js` | `deriveJobConstraints()` — single source of truth for all constraints |
-| `categoryEngine.js` | `backend/utils/categoryEngine.js` | Vehicle → service category mapping |
-| `disciplineEngine.js` | `backend/utils/disciplineEngine.js` | **NEW** — no-show fee, warnings, suspension, compliance check, priority queue |
+**Login uses Firebase tokens, not passwords.**
+Flutter calls Firebase SDK to sign in, gets an `idToken`, then sends it to the backend. The backend verifies it using Firebase Admin SDK. Every protected route just needs `Authorization: Bearer <idToken>` in the header. No passwords ever travel to the backend.
 
-### Controllers
-| File | Path | Purpose |
-|---|---|---|
-| `jobController.js` | `backend/controllers/jobController.js` | Job creation with logistics builder, Others support, dispatch fallback |
-| `quoteController.js` | `backend/controllers/quoteController.js` | Quote flow + **NEW** multi-driver bidding system |
-| `garageController.js` | `backend/controllers/garageController.js` | On-site repair broadcast → estimate bidding → customer accept |
-| `driverController.js` | `backend/controllers/driverController.js` | Driver status, online/offline toggle, compliance gate |
-| `disciplineController.js` | `backend/controllers/disciplineController.js` | **NEW** — all discipline endpoints + safety checklists |
-| `authController.js` | `backend/controllers/authController.js` | Register/login |
+**Scheduled pickup is supported on all job types.**
+When creating a job, the customer can pass `isScheduled: true`, `scheduledPickupDate: "2026-05-15"`, and `scheduledPickupTime: "09:00"`. Scheduled jobs skip auto-dispatch and confirm with the pickup details. A driver is assigned when the date approaches.
 
-### Routes
-| File | Path | Endpoints |
-|---|---|---|
-| `jobRoutes.js` | `backend/routes/jobRoutes.js` | `/api/jobs` |
-| `quoteRoutes.js` | `backend/routes/quoteRoutes.js` | `/api/quotes` + bidding |
-| `garageRoutes.js` | `backend/routes/garageRoutes.js` | `/api/garage-requests` |
-| `driverRoutes.js` | `backend/routes/driverRoutes.js` | `/api/drivers` |
-| `disciplineRoutes.js` | `backend/routes/disciplineRoutes.js` | **NEW** `/api/discipline` |
-| `authRoutes.js` | `backend/routes/authRoutes.js` | `/api/auth` |
+**Smart matching filters automatically.**
+The backend calculates which drivers are eligible before assigning. It checks: within 10km, has correct truck type, weight capacity meets minimum, vehicle height fits (for basement jobs), gate pass if required, and all documents are still valid. No manual work needed.
+
+**Quotes and on-site repair use different flows.**
+Industrial jobs (heavy, oversized) go to a bidding flow where multiple drivers/garages submit prices. The customer picks the best bid. On-site repairs broadcast to nearby garages, and the first to submit an estimate wins.
+
+**Driver discipline runs automatically.**
+If a driver is late (15+ minutes over ETA), they receive a warning. At 3 warnings, they are automatically suspended. A QR 50 fee is applied to customers who don't respond within 10 minutes of driver arrival. Admin can clear suspensions manually.
+
+**The live safety monitor shows every active job in color.**
+🟢 Green = safe job, no flags. 🟡 Yellow = high risk or safety issues detected. 🔴 Red = panic triggered or critical situation. Admin sees this in real-time via `/api/incidents/live`.
+
+**Fraud score is calculated automatically on every job.**
+The fraud engine checks: user cancel rate, driver cancel rate, price vs. average, location mismatch, job completion speed, and missing photo proof. Score 0–2 = safe, 3–5 = suspicious, 6+ = high risk and auto-flagged for admin review.
+
+**Disputes resolve themselves in seconds for clear cases.**
+When a user submits a dispute, the system collects evidence from the job record (GPS, timestamps, photo status, price vs. estimate). If confidence is 80%+, it auto-resolves. For example: driver no-show with no arrival time → refund issued automatically. Edge cases go to admin.
+
+**Driver verifies arrival with a PIN.**
+When a job is created, the customer receives a 4-digit PIN. The driver must enter this PIN when they arrive. This prevents ghost completions (driver marking a job done without actually showing up).
+
+**Panic button creates an instant admin alert.**
+If the customer or driver hits panic, the job is flagged red, an incident is created, and an unread admin alert appears immediately in the dashboard. Admin can call, track location, or force-cancel the job.
+
+---
+
+## 📂 File Structure
+
+### Core Engines (`backend/utils/`)
+| File | What It Does |
+|---|---|
+| `matchingEngine.js` | Filters eligible drivers by distance, equipment, height, gate pass, documents |
+| `pricingEngine.js` | Calculates price in halala integers with distance tiers and peak-hour buffer |
+| `serviceEngine.js` | `deriveJobConstraints()` — single source of truth for all job constraints |
+| `categoryEngine.js` | Maps vehicle type → service category (tow / heavy / garage / quote) |
+| `disciplineEngine.js` | No-show fee, late warnings, auto-suspend, document expiry check, priority queue |
+| `fraudEngine.js` | **BONUS** — Fraud score engine, flag jobs, penalize users |
+| `safetyEngine.js` | **BONUS** — Risk score, PIN generation/verification, panic handler, inactivity check |
+
+### Controllers (`backend/controllers/`)
+| File | What It Does |
+|---|---|
+| `authController.js` | Register user (Firebase Auth + Firestore), login with Firebase token, get profile |
+| `jobController.js` | Create job, price estimate, scheduled pickup, cancel with reason, rate driver |
+| `driverController.js` | Register driver, online/offline toggle, compliance gate |
+| `quoteController.js` | Industrial quote flow + multi-driver bidding |
+| `garageController.js` | On-site repair broadcast → estimate bidding → accept flow |
+| `disciplineController.js` | Warnings, compliance check, safety checklists, priority queue, admin review |
+| `incidentController.js` | **BONUS** — Live monitor, admin alerts, panic, inactivity check, analytics |
+| `fraudController.js` | **BONUS** — Flagged jobs, user fraud stats, fraud score, apply penalty |
+| `disputeController.js` | **BONUS** — Submit dispute, auto decision engine, admin override |
+| `safetyController.js` | **BONUS** — Risk check, PIN, safety confirmation, post-job feedback |
+
+### Routes (`backend/routes/`)
+| File | Base Path |
+|---|---|
+| `authRoutes.js` | `/api/auth` |
+| `jobRoutes.js` | `/api/jobs` |
+| `driverRoutes.js` | `/api/drivers` |
+| `quoteRoutes.js` | `/api/quotes` |
+| `garageRoutes.js` | `/api/garage-requests` |
+| `disciplineRoutes.js` | `/api/discipline` |
+| `incidentRoutes.js` | **BONUS** `/api/incidents` |
+| `fraudRoutes.js` | **BONUS** `/api/fraud` |
+| `disputeRoutes.js` | **BONUS** `/api/disputes` |
+| `safetyRoutes.js` | **BONUS** `/api/safety` |
+
+### Models (`backend/models/`)
+| File | What It Stores |
+|---|---|
+| `userModel.js` | User profile (uid, name, email, phone, role) |
+| `jobModel.js` | Job document with all fields including scheduling, cancellation, fraud, safety |
+| `driverModel.js` | Driver profile, truck type, equipment, compliance docs |
+| `incidentModel.js` | **BONUS** — Safety incident with evidence, riskLevel, adminAction |
+| `disputeModel.js` | **BONUS** — Dispute with evidence, decision, confidence score |
 
 ### Entry Points
-| File | Path | Purpose |
-|---|---|---|
-| `server.js` | `backend/server.js` | Local dev server |
-| `index.js` | `functions/index.js` | Firebase Cloud Function entry |
-
----
-
-## 🧠 Intelligence Engine Explained
-
-### How `deriveJobConstraints(vehicleType)` Works
-
-The single function in `serviceEngine.js` drives ALL matching logic:
-
-```
-vehicleType = "JCB 3CX Backhoe"
-     ↓
-deriveJobConstraints()
-     ↓
-{
-  requiredTruckType: 'flatbed_heavy',
-  requiredEquipmentTypes: ['flatbed'],
-  minCapacityKg: 7000,
-  isSpecialLoad: true,           ← triggers expert routing
-  requiresMinExperienceYears: 2
-}
-     ↓
-matchingEngine filters:
-  1. isOnline + isAvailable + isApproved
-  2. NOT complianceBlocked (expired docs)
-  3. NOT isSuspended
-  4. truckType === 'flatbed_heavy'
-  5. maxCapacityKg >= 7000
-  6. equipmentTypes includes 'flatbed'
-  7. yearsExperience >= 2
-  8. within 10km (haversine)
-     ↓
-Sort: experience DESC → rating DESC → distance ASC
-     ↓
-Auto-assign drivers[0]
-```
-
-If **no match found**, the API returns:
-```json
-{
-  "dispatchStatus": "no_match",
-  "dispatchMessage": "No truck with 7-ton capacity available within 10km. Please try again shortly.",
-  "retryAfterMinutes": 10
-}
-```
-
----
-
-## 💰 Pricing Calculation Walkthrough
-
-All prices stored and computed as **integer halala** (1 QAR = 100 halala).
-
-### Example: Sedan Tow, 12km
-
-```
-Base fare:           25000 halala  = QR 250.00
-Per km (12 × 500):    6000 halala  = QR  60.00
-                     ─────────────────────────────
-Subtotal:            31000 halala  = QR 310.00
-
-Peak hour (07–09, 12–13, 17–20 Qatar, +25% ETA only — price unchanged):
-  Display: "QR 310.00" (ETA extended by 25%)
-```
-
-### Example: 20ft Container Quote, 30km
-
-```
-Base:                        10000 halala  = QR 100.00
-Distance (30 × 500):         15000 halala  = QR 150.00
-Special load surcharge (+30%):
-  25000 × 1.30 =             32500 halala  = QR 325.00
-
-Display: "QR 325.00" (but for industrial quotes, 
-         garages/drivers bid their own price — this is the floor)
-```
-
-### No-Show Fee
-```
-Customer doesn't respond within 10 min of driver arrival:
-  Fee = 5000 halala = QR 50.00
-```
-
----
-
-## 🔄 Complete Service Flows
-
-### 1. Tow Job (Standard)
-```
-POST /api/jobs  { vehicleType: "Sedan", pickupCoords, distanceKm }
-  → deriveJobConstraints("Sedan")
-  → findMatchingDrivers() — 10km radius, standard_tow
-  → autoAssignDriver()
-  → Response: { job, driverId, estimatedETA, dispatchStatus }
-```
-
-### 2. On-Site Repair
-```
-POST /api/garage-requests  { issue, location }
-  → broadcast to garages within 10km
-  → garages submit estimates: POST /api/garage-requests/:id/estimate
-  → customer views: GET /api/garage-requests/:id/estimates
-  → customer accepts: PUT /api/garage-requests/:id/accept
-  → mechanic dispatched, customer contact revealed
-```
-
-### 3. Industrial Quote + Bidding
-```
-POST /api/quotes  { vehicleType: "20ft Container", ... }
-  → broadcast to garages within 15km
-  → drivers/garages bid: POST /api/quotes/:id/bid  { price, etaMinutes }
-  → customer views bids: GET /api/quotes/:id/bids  (sorted, best highlighted)
-  → customer accepts: PUT /api/quotes/:id/bids/:bidId/accept
-  → linked job auto-created, all other bids rejected
-```
-
-### 4. Driver Discipline Flow
-```
-Driver late → POST /api/discipline/warning/:driverId
-  → warningCount++
-  → if warningCount >= 3: isSuspended = true (auto)
-  
-Admin clears: PUT /api/discipline/clear/:driverId
-  → warningCount = 0, isSuspended = false
-```
-
-### 5. Document Compliance
-```
-POST /api/discipline/compliance-check  (run daily by cron/scheduled task)
-  → scan all drivers
-  → 30 days before expiry → complianceStatus: 'expiring_soon'
-  →  7 days before expiry → complianceStatus: 'expiring_critical'
-  → expired              → complianceBlocked: true (cannot go online)
-
-GET  /api/discipline/compliance/:driverId  (single driver check)
-  → returns daysUntilExpiry for each document type
-  → complianceBlocked, complianceWarnings[], recommended actions
-```
-
-### 6. Safety Checklists
-```
-Driver before starting:
-POST /api/discipline/safety-check/:jobId/driver
-  { hookSecured, winchLocked, safetyLightsOn, areaIsSafe,
-    vehicleSecured, hazardLightsOn, properToolsUsed }
-  → ALL must be true or 400 error with failedChecks list
-
-Customer before confirming:
-POST /api/discipline/safety-check/:jobId/customer
-  { inSafeLocation, notStandingBehindVehicle, willVerifyIdentity }
-  → ALL must be true or 400 error
-```
-
----
-
-## 🌐 API Endpoint Reference (Complete)
-
-### Auth
-```
-POST /api/auth/register
-GET  /api/auth/me/:uid
-```
-
-### Jobs
-```
-POST /api/jobs                          ← create job (all types)
-GET  /api/jobs/my-jobs?userId=          ← customer job feed
-GET  /api/jobs/:id/status               ← live tracking
-GET  /api/jobs/available                ← driver job feed
-GET  /api/jobs/price-estimate           ← price calculator
-GET  /api/jobs/service-info             ← service catalog
-PUT  /api/jobs/:id/accept               ← driver accepts
-PUT  /api/jobs/:id/status               ← update status
-DELETE /api/jobs/:id/cancel             ← cancel
-PUT  /api/jobs/:id/rate-driver          ← customer rates
-```
-
-### Drivers
-```
-POST /api/drivers                       ← register
-GET  /api/drivers                       ← list (filtered)
-GET  /api/drivers/truck-types           ← catalog
-GET  /api/drivers/:id                   ← profile
-GET  /api/drivers/:id/status            ← full status + compliance
-PUT  /api/drivers/:id/online            ← go online (compliance gated)
-PUT  /api/drivers/:id/offline           ← go offline (job-blocked)
-PUT  /api/drivers/:id/approve           ← admin approve
-PUT  /api/drivers/:id                   ← update profile
-```
-
-### Quotes
-```
-POST /api/quotes                        ← submit quote request
-GET  /api/quotes/my-quotes              ← customer quote feed
-GET  /api/quotes/:id                    ← single quote
-PUT  /api/quotes/:id/respond            ← garage responds (single price)
-PUT  /api/quotes/:id/accept             ← customer accepts
-PUT  /api/quotes/:id/reject             ← customer rejects
-POST /api/quotes/:id/bid                ← multi-driver bid submission
-GET  /api/quotes/:id/bids               ← view all bids (sorted)
-PUT  /api/quotes/:id/bids/:bidId/accept ← accept winning bid
-```
-
-### Garage (On-Site Repair)
-```
-POST /api/garage-requests               ← create repair request
-GET  /api/garage-requests               ← list
-GET  /api/garage-requests/:id           ← single request
-POST /api/garage-requests/:id/estimate  ← garage submits estimate
-GET  /api/garage-requests/:id/estimates ← customer views estimates
-PUT  /api/garage-requests/:id/accept    ← customer accepts estimate
-PUT  /api/garage-requests/:id/status    ← update status
-POST /api/garage-requests/:id/auto-cancel-check ← 15-min auto-cancel
-```
-
-### Discipline & Safety
-```
-POST /api/discipline/no-show                        ← apply no-show fee
-POST /api/discipline/warning/:driverId              ← issue late warning
-PUT  /api/discipline/clear/:driverId                ← clear suspension
-POST /api/discipline/compliance-check               ← run for all drivers
-GET  /api/discipline/compliance/:driverId           ← single driver check
-GET  /api/discipline/priority-queue                 ← pending jobs by score
-GET  /api/discipline/admin-review                   ← custom jobs for admin
-PUT  /api/discipline/admin-review/:jobId/assign     ← admin manually assigns
-POST /api/discipline/safety-check/:jobId/driver     ← driver pre-trip checklist
-POST /api/discipline/safety-check/:jobId/customer   ← customer safety confirm
-GET  /api/discipline/safety-check/:jobId            ← get both records
-```
-
----
-
-## 📦 Postman Collection
-
-**File:** `api/RoadResQ_API_v4_Complete.postman_collection.json`
-
-**GitHub:** https://github.com/Rover-dotcom/RoadResQ/tree/backend-dev/api
-
-**How to use:**
-1. Import `RoadResQ_API_v4_Complete.postman_collection.json`
-2. Import `RoadResQ_Production.postman_environment.json`
-3. Set environment to **RoadResQ Production**
-4. All `{{base_url}}`, `{{userId}}`, `{{driverId}}` etc. are pre-configured
-
----
-
-## 🏗️ Firestore Collections Created
-
-| Collection | Purpose |
+| File | Purpose |
 |---|---|
-| `users` | Customer profiles |
-| `drivers` | Driver profiles + compliance fields |
-| `jobs` | All job records |
-| `quote_requests` | Quote requests + bids subcollection |
-| `garage_requests` | On-site repair requests |
-| `garages` | Garage profiles |
-| `discipline_logs` | Warning/penalty audit trail |
-| `compliance_alerts` | Per-driver document expiry alerts |
-| `safety_checklists` | Driver pre-trip + customer safety records |
-| `admin_review_queue` | Custom/Others jobs awaiting manual assignment |
-| `garage_live_quotes` | Real-time broadcast entries for garage apps |
+| `backend/server.js` | Local dev server (run with `node server.js`) |
+| `functions/index.js` | Firebase Cloud Function entry — wraps the same Express app |
 
 ---
 
-## 🔐 Security & Firestore Rules
+## 🔐 Firebase Auth Flow
 
-Firestore rules enforce role-based access:
+**How registration works:**
+`POST /api/auth/register` → creates a Firebase Auth account → creates a Firestore `users` document with role, name, phone. The Firestore document is linked to the Firebase UID.
 
-| Collection | Read | Write |
-|---|---|---|
-| `users` | Owner only | Owner only |
-| `drivers` | Admin + self | Self (profile update) |
-| `jobs` | Owner + assigned driver | System only |
-| `quote_requests` | Owner + nearby garages | Garage (respond), owner (accept) |
-| `garage_requests` | Owner + nearby garages | Garage (estimate), owner (accept) |
-| `discipline_logs` | Admin only | System only |
-| `safety_checklists` | Owner + assigned driver | Owner + driver |
+**How login works:**
+Flutter calls `Firebase.signInWithEmailAndPassword()` → gets `idToken` → sends `POST /api/auth/login { idToken }` → backend verifies using Firebase Admin SDK → returns user profile from Firestore.
+
+**How protected routes work:**
+Every request to a protected endpoint must include `Authorization: Bearer <idToken>` in the header. The middleware in `backend/middleware/auth.js` verifies the token and attaches the user's UID and role to the request.
+
+```
+Flutter → Firebase SDK → idToken
+     ↓
+POST /api/auth/login { idToken }
+     ↓
+Backend → Firebase Admin verifyIdToken()
+     ↓
+Returns: { uid, name, email, role, phone }
+     ↓
+All future requests: Authorization: Bearer <idToken>
+```
 
 ---
 
-## 🚀 Firebase Deployment
+## 🛡 Bonus: Admin Safety Dashboard (`/api/incidents`)
+
+The live monitor gives admin a real-time view of all active jobs. Each job has a color:
+- 🟢 Green — safe, no flags
+- 🟡 Yellow — safety flags or high risk detected
+- 🔴 Red — panic triggered or critical situation
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `GET /api/incidents/live` | Returns all active jobs with colors, open incident count, unread alert count |
+| `GET /api/incidents/analytics` | Today's totals: jobs, completed, high-risk, panic count, avg response time |
+| `GET /api/incidents/alerts` | Admin alert feed — panic, inactivity, fraud flags |
+| `POST /api/incidents` | Report an incident (user, driver, or system) |
+| `GET /api/incidents` | List incidents filtered by status, type, risk level |
+| `GET /api/incidents/:id` | Full incident detail with related job |
+| `PUT /api/incidents/:id/action` | Admin applies: `warn` / `suspend` / `ban` / `resolve` / `escalate` |
+| `POST /api/incidents/panic` | 🚨 Panic button — flags job red, creates alert + incident in one call |
+| `POST /api/incidents/inactivity-check` | Finds jobs with no activity for 15+ minutes and flags them |
+
+When admin warns a driver, the warning count increases. At 3 warnings, the driver is auto-suspended. Admin can apply ban manually for severe cases.
+
+---
+
+## 🔍 Bonus: Fraud Detection System (`/api/fraud`)
+
+**Fraud score formula:**
+```
+cancelRate > 50%       → +2 points (user or driver)
+price > 2x average     → +3 points
+location mismatch > 5km → +3 points
+job done in < 3 min    → +2 points (ghost completion)
+no photo on completion → +1 point
+driver has 2+ warnings → +1 point
+
+Score 0–2 = Safe ✅
+Score 3–5 = Suspicious ⚠️
+Score 6+  = High Risk 🚨 (auto-flagged)
+```
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `GET /api/fraud/jobs` | All flagged high-risk jobs for admin review |
+| `GET /api/fraud/users` | Top suspicious users grouped by cancel rate and fraud score |
+| `GET /api/fraud/score/:jobId` | Fraud score breakdown for a specific job |
+| `POST /api/fraud/check` | Run fraud check on a job and store the result |
+| `PUT /api/fraud/action` | Apply penalty: `warning`, `temporary_block` (7 days), `permanent_ban` |
+
+---
+
+## ⚖️ Bonus: Automated Dispute Resolution (`/api/disputes`)
+
+When a dispute is submitted, the system immediately collects evidence from the job record (GPS arrival time, photo status, job completion status, price vs. estimate). Then it runs the decision engine:
+
+```
+Service not completed + no photos   → refund_user      (90% confidence → auto)
+Price > 1.5x estimate               → partial_refund   (85% confidence → auto)
+Price > 2x estimate                 → refund_user      (85% confidence → auto)
+Driver no-show (no arrival time)    → refund_user      (88% confidence → auto)
+User no-show confirmed by driver    → charge_user      (80% confidence → auto)
+Delay                               → partial_refund   (70% confidence → admin)
+Damage / conflicting data           → escalate         (60% confidence → admin)
+```
+
+If confidence is 80% or above, it resolves automatically with no admin needed. Below 80%, it goes to admin review with a suggested decision already shown.
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `POST /api/disputes` | Submit dispute — auto-collects evidence, runs decision engine |
+| `GET /api/disputes` | All disputes (filter by status, type, reported by) |
+| `GET /api/disputes/my/:userId` | User's own dispute history |
+| `GET /api/disputes/:id` | Dispute detail with decision and evidence |
+| `PUT /api/disputes/:id/resolve` | Admin approves or overrides the decision |
+
+---
+
+## 🦺 Bonus: Safety System 2.0 (`/api/safety`)
+
+**Risk score (pre-job):**
+```
+Highway location         → +3 points
+Industrial zone          → +2 points
+Desert / remote area     → +2 points
+Night time (10pm–5am)    → +2 points
+Qatar peak traffic hours → +1 point
+Basement / underground   → +1 point
+Heavy equipment service  → +2 points
+
+Score 0   = Low — normal flow
+Score 1–3 = Medium — show safety warning
+Score 4–5 = High — require safety confirmation
+Score 6+  = Critical — urgent safety message
+```
+
+The system generates dynamic warning messages based on what triggered the risk (e.g., "You are on a high-speed road. Stay inside your vehicle and turn hazard lights ON.") instead of a static generic message.
+
+**PIN Verification:**
+When a job is assigned, the customer receives a 4-digit PIN. The driver must enter this PIN at arrival. The PIN is hashed (SHA-256) in Firestore — never stored in plain text. Entering the correct PIN automatically moves the job to `in_progress`.
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `POST /api/safety/risk-check` | Returns risk score, level, and specific warning messages |
+| `POST /api/safety/pin/generate` | Generates 4-digit PIN for the job, returns raw PIN to customer |
+| `POST /api/safety/pin/verify` | Driver enters PIN — correct PIN starts the job |
+| `POST /api/safety/confirm` | Customer confirms safety checklist before job begins |
+| `POST /api/safety/feedback` | Post-job safety rating — auto-creates incident if rated unsafe |
+| `GET /api/safety/job/:jobId` | Returns current safety state of a job (PIN status, risk level, flags) |
+
+---
+
+## 🔥 Firebase Status
 
 | Item | Status |
 |---|---|
-| Cloud Functions v4.0.0 | ✅ Deployed (me-central1, 512MiB, 120s timeout) |
+| Cloud Functions v5.0.0 (me-central1) | ✅ Deployed |
 | Firestore Security Rules | ✅ Deployed |
-| Firestore Indexes (16 composite) | ✅ Deployed |
-| GitHub (backend-dev branch) | ✅ Committed |
+| Firestore Indexes | ✅ Deployed |
+| Firebase Auth — Email/Password | ✅ Enabled |
+| Firebase Auth — Google Sign-In | ✅ Enabled |
+| Firestore Collections | ✅ Live (`users`, `jobs`, `drivers`, `incidents`, `disputes`, `fraud_flags`, `admin_alerts`, `safety_confirmations`, `safety_feedback`) |
 
 **Production URL:** `https://api-h6acdw3itq-ww.a.run.app`
 
 ---
 
+## 📦 Firestore Security Rules
 
+All collections have role-based rules deployed. Summary:
+- `users` — users can only read/write their own document. Admin can read all.
+- `jobs` — any signed-in user can create and read. Admin can delete.
+- `drivers` — drivers can update their own profile. Admin has full control.
+- `incidents` — any signed-in user can report. Only admin can take action.
+- `disputes` — signed-in users can submit and view own. Only admin can resolve.
+- `fraud_flags` — admin only.
+- `admin_alerts` — system writes, admin reads and marks as read.
+
+File: `firestore.rules`
+
+---
+
+## 📮 Postman & API Docs
+
+**Collection file:** `api/RoadResQ_API_v4_Complete.postman_collection.json`
+**Local environment:** `docs/RoadResQ_Local.postman_environment.json`
+**Production environment:** `docs/RoadResQ_Production.postman_environment.json`
+**Integration guide:** `api/README.md`
+
+The Postman collection includes:
+- 🔑 Firebase Token Helper folder — get a Firebase `idToken` without the mobile app, for testing
+- Auth folder with register, login, get profile
+- All job types with example bodies (scheduled, basement, heavy, etc.)
+- All new bonus endpoints (incidents, fraud, disputes, safety)
+- Environment variables for `base_url` and `token` pre-filled
+
+To use: import the collection + production environment JSON into Postman, set the `token` variable, and all protected requests work immediately.
+
+---
+
+## 🗂 GitHub
+
+**Branch:** `backend-dev`
+**Latest commit:** `71df14a`
+**Repo:** https://github.com/Rover-dotcom/RoadResQ
+
+All files committed:
+- `backend/` — full source code
+- `functions/` — Firebase Cloud Function (mirrors backend/)
+- `api/` — Postman collection + environment files + README
+- `docs/` — Week 4 and Week 5 reports
+- `firestore.rules` — deployed security rules
+- `firestore.indexes.json` — deployed indexes
+- `firebase.json` — project configuration

@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "RoadResQ API v4 — Complete",
-    "description": "RoadResQ API v4.1.0 — Base URL: https://api-h6acdw3itq-ww.a.run.app\n\n🔐 AUTH: All protected routes need: Authorization: Bearer <Firebase ID Token>\nGet token from Firebase Auth (client SDK), pass to /api/auth/login to verify.\n\nFlows:\n1. Register → POST /api/auth/register (email+password creates Firebase+Firestore)\n2. Login   → POST /api/auth/login { idToken } — verifies Firebase token\n3. Profile → GET /api/auth/me (Bearer token required)\n4. Jobs    → POST /api/jobs with optional scheduledPickupDate/Time\n5. Quotes  → POST /api/quotes with preferredDate/Time\n6. Garage  → POST /api/garage-requests with preferredDate/Time\n7. Cancel  → DELETE /api/jobs/:id/cancel with cancellationReason",
+    "name": "RoadResQ API v5.0 \u2014 Complete",
+    "description": "RoadResQ complete API v5.0.0. Includes: Auth (Firebase token), Jobs, Drivers, Quotes, Garage, Discipline, Admin Safety Dashboard, Fraud Detection, Dispute Resolution (ADR), Safety System 2.0.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "4.1.0"
   },
@@ -49,7 +49,7 @@
   ],
   "item": [
     {
-      "name": "🔑 Get Firebase Token (Testing Helper)",
+      "name": "\ud83d\udd11 Get Firebase Token (Testing Helper)",
       "description": "Use this to get a real Firebase ID token for Postman testing.",
       "item": [
         {
@@ -67,13 +67,13 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234\",\n  \"returnSecureToken\": true\n}"
             },
-            "description": "⚠️ Replace the API key in the URL with the actual Firebase Web API Key.\nFind it: Firebase Console → Project Settings → General → Web API Key\n\nAfter running this:\n1. Copy idToken from the response\n2. Set it as {{idToken}} variable in your Postman environment\n3. Use it as: Authorization: Bearer {{idToken}}"
+            "description": "\u26a0\ufe0f Replace the API key in the URL with the actual Firebase Web API Key.\nFind it: Firebase Console \u2192 Project Settings \u2192 General \u2192 Web API Key\n\nAfter running this:\n1. Copy idToken from the response\n2. Set it as {{idToken}} variable in your Postman environment\n3. Use it as: Authorization: Bearer {{idToken}}"
           }
         }
       ]
     },
     {
-      "name": "🔐 Auth",
+      "name": "\ud83d\udd10 Auth",
       "item": [
         {
           "name": "Register (Email + Password)",
@@ -126,7 +126,7 @@
               "mode": "raw",
               "raw": "{\n  \"idToken\": \"{{idToken}}\"\n}"
             },
-            "description": "🔐 Flutter/mobile gets idToken from Firebase Auth SDK after sign-in.\nSend it here to verify + get Firestore profile.\n\nTo get idToken in Postman for testing:\n1. Use Firebase REST API: POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSy...\n   Body: { email, password, returnSecureToken: true }\n2. Copy idToken from response\n3. Paste into {{idToken}} variable"
+            "description": "\ud83d\udd10 Flutter/mobile gets idToken from Firebase Auth SDK after sign-in.\nSend it here to verify + get Firestore profile.\n\nTo get idToken in Postman for testing:\n1. Use Firebase REST API: POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSy...\n   Body: { email, password, returnSecureToken: true }\n2. Copy idToken from response\n3. Paste into {{idToken}} variable"
           }
         },
         {
@@ -140,7 +140,7 @@
               }
             ],
             "url": "{{base_url}}/api/auth/me",
-            "description": "🔐 Protected. Requires: Authorization: Bearer <Firebase ID Token>\nReturns full user profile from Firestore."
+            "description": "\ud83d\udd10 Protected. Requires: Authorization: Bearer <Firebase ID Token>\nReturns full user profile from Firestore."
           }
         },
         {
@@ -153,14 +153,14 @@
           }
         }
       ],
-      "description": "Firebase Auth flow.\n\nSteps:\n1. Register with email+password → creates Firebase Auth user + Firestore profile\n2. Use Firebase client SDK to sign in → get idToken\n3. POST /login with idToken to verify + get profile\n4. Use idToken as Bearer token for all protected routes"
+      "description": "Firebase Auth flow.\n\nSteps:\n1. Register with email+password \u2192 creates Firebase Auth user + Firestore profile\n2. Use Firebase client SDK to sign in \u2192 get idToken\n3. POST /login with idToken to verify + get profile\n4. Use idToken as Bearer token for all protected routes"
     },
     {
-      "name": "🚗 Jobs — Customer",
+      "name": "\ud83d\ude97 Jobs \u2014 Customer",
       "description": "Customer-facing job endpoints. Create, track, and manage jobs.",
       "item": [
         {
-          "name": "Create Job (Tow — Sedan)",
+          "name": "Create Job (Tow \u2014 Sedan)",
           "request": {
             "method": "POST",
             "header": [
@@ -178,7 +178,7 @@
           }
         },
         {
-          "name": "Create Job (Heavy — JCB 3CX)",
+          "name": "Create Job (Heavy \u2014 JCB 3CX)",
           "request": {
             "method": "POST",
             "header": [
@@ -196,7 +196,7 @@
           }
         },
         {
-          "name": "Create Job (Basement — requires gate pass)",
+          "name": "Create Job (Basement \u2014 requires gate pass)",
           "request": {
             "method": "POST",
             "header": [
@@ -298,11 +298,11 @@
               "mode": "raw",
               "raw": "{ \"rating\": 5 }"
             },
-            "description": "Rate driver 1–5 after job is completed."
+            "description": "Rate driver 1\u20135 after job is completed."
           }
         },
         {
-          "name": "Create Job (SCHEDULED — Tow)",
+          "name": "Create Job (SCHEDULED \u2014 Tow)",
           "request": {
             "method": "POST",
             "header": [
@@ -316,7 +316,7 @@
               "mode": "raw",
               "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"vehicleType\": \"Sedan\",\n  \"pickup\": \"The Pearl Qatar, Doha\",\n  \"drop\": \"Al Sadd Service Center\",\n  \"pickupCoords\": {\n    \"lat\": 25.3713,\n    \"lng\": 51.5509\n  },\n  \"distanceKm\": 6.2,\n  \"isScheduled\": true,\n  \"scheduledPickupDate\": \"2026-05-15\",\n  \"scheduledPickupTime\": \"09:00\",\n  \"customerNotes\": \"Please arrive on time, I have a meeting at 10am\"\n}"
             },
-            "description": "📅 Scheduled job — driver assigned closer to pickup date.\nResponse includes dispatchStatus.isScheduled=true with confirmation message.\n\nscheduledPickupDate: YYYY-MM-DD format\nscheduledPickupTime: HH:MM (24h, Qatar time)"
+            "description": "\ud83d\udcc5 Scheduled job \u2014 driver assigned closer to pickup date.\nResponse includes dispatchStatus.isScheduled=true with confirmation message.\n\nscheduledPickupDate: YYYY-MM-DD format\nscheduledPickupTime: HH:MM (24h, Qatar time)"
           }
         },
         {
@@ -340,7 +340,7 @@
       ]
     },
     {
-      "name": "🚛 Jobs — Driver",
+      "name": "\ud83d\ude9b Jobs \u2014 Driver",
       "description": "Driver-facing job endpoints.",
       "item": [
         {
@@ -403,13 +403,13 @@
               "mode": "raw",
               "raw": "{\n  \"status\": \"in_progress\",\n  \"note\": \"Vehicle loaded on flatbed\"\n}"
             },
-            "description": "Valid statuses: pending → assigned → accepted → in_progress → on_site → at_garage → completed | cancelled"
+            "description": "Valid statuses: pending \u2192 assigned \u2192 accepted \u2192 in_progress \u2192 on_site \u2192 at_garage \u2192 completed | cancelled"
           }
         }
       ]
     },
     {
-      "name": "🔍 Matching & Pricing",
+      "name": "\ud83d\udd0d Matching & Pricing",
       "description": "Service catalog, price calculator, and matching engine.",
       "item": [
         {
@@ -459,8 +459,8 @@
       ]
     },
     {
-      "name": "📋 Quotes",
-      "description": "Quote flow — GARAGE DRIVEN. Admin is read-only.\n\nFlow: Customer submits → Garage responds with price → Customer accepts → Job created.",
+      "name": "\ud83d\udccb Quotes",
+      "description": "Quote flow \u2014 GARAGE DRIVEN. Admin is read-only.\n\nFlow: Customer submits \u2192 Garage responds with price \u2192 Customer accepts \u2192 Job created.",
       "item": [
         {
           "name": "Submit Quote Request (Customer)",
@@ -512,7 +512,7 @@
           }
         },
         {
-          "name": "Garage Responds with Price ← GARAGE ONLY",
+          "name": "Garage Responds with Price \u2190 GARAGE ONLY",
           "request": {
             "method": "PUT",
             "header": [
@@ -526,7 +526,7 @@
               "mode": "raw",
               "raw": "{\n  \"garageId\": \"{{garageId}}\",\n  \"garageName\": \"Al Rayyan Heavy Transport\",\n  \"quotedPrice\": 85000,\n  \"garageNotes\": \"Includes specialized flatbed + crane operator. Price valid for 48hrs.\"\n}"
             },
-            "description": "GARAGE ONLY — Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00"
+            "description": "GARAGE ONLY \u2014 Admin cannot respond to quotes. quotedPrice in halala: 85000 = QR 850.00"
           }
         },
         {
@@ -580,14 +580,14 @@
                 }
               ]
             },
-            "description": "Admin report endpoint — read only. Filter by userId, garageId, status."
+            "description": "Admin report endpoint \u2014 read only. Filter by userId, garageId, status."
           }
         }
       ]
     },
     {
-      "name": "🔧 Garage (On-Site Repair)",
-      "description": "On-site repair flow. Customer requests → Garages bid estimates → Customer picks one.",
+      "name": "\ud83d\udd27 Garage (On-Site Repair)",
+      "description": "On-site repair flow. Customer requests \u2192 Garages bid estimates \u2192 Customer picks one.",
       "item": [
         {
           "name": "Create Repair Request (Customer)",
@@ -666,7 +666,7 @@
               "mode": "raw",
               "raw": "{\n  \"status\": \"in_progress\",\n  \"garageSafetyChecklist\": {\n    \"areaIsSafe\": true,\n    \"vehicleSecured\": true,\n    \"properToolsUsed\": true,\n    \"hazardLightsOn\": true\n  }\n}"
             },
-            "description": "Status flow: accepted → on_the_way → in_progress → completed | cancelled"
+            "description": "Status flow: accepted \u2192 on_the_way \u2192 in_progress \u2192 completed | cancelled"
           }
         },
         {
@@ -714,13 +714,13 @@
               "mode": "raw",
               "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"issue\": \"AC Not Working\",\n  \"location\": {\n    \"lat\": 25.2854,\n    \"lng\": 51.531\n  },\n  \"additionalNotes\": \"AC stopped blowing cold air\",\n  \"isScheduled\": true,\n  \"preferredDate\": \"2026-05-12\",\n  \"preferredTime\": \"10:30\",\n  \"contactInfo\": {\n    \"name\": \"Ahmed\",\n    \"phone\": \"+974-5555-0001\"\n  }\n}"
             },
-            "description": "📅 Scheduled garage repair request.\nGarages notified but auto-cancel timer not started until scheduled date."
+            "description": "\ud83d\udcc5 Scheduled garage repair request.\nGarages notified but auto-cancel timer not started until scheduled date."
           }
         }
       ]
     },
     {
-      "name": "👤 Drivers",
+      "name": "\ud83d\udc64 Drivers",
       "description": "Driver management, status, and online/offline control.",
       "item": [
         {
@@ -795,7 +795,7 @@
           }
         },
         {
-          "name": "Go Online ← Driver Toggle",
+          "name": "Go Online \u2190 Driver Toggle",
           "request": {
             "method": "PUT",
             "header": [
@@ -813,7 +813,7 @@
           }
         },
         {
-          "name": "Go Offline ← Driver Toggle",
+          "name": "Go Offline \u2190 Driver Toggle",
           "request": {
             "method": "PUT",
             "header": [
@@ -881,8 +881,8 @@
       ]
     },
     {
-      "name": "📊 Admin Reports",
-      "description": "Admin-only read access. No write operations — use garage/driver endpoints for changes.",
+      "name": "\ud83d\udcca Admin Reports",
+      "description": "Admin-only read access. No write operations \u2014 use garage/driver endpoints for changes.",
       "item": [
         {
           "name": "All Jobs Report",
@@ -948,7 +948,7 @@
       ]
     },
     {
-      "name": "🛡️ Discipline & Safety",
+      "name": "\ud83d\udee1\ufe0f Discipline & Safety",
       "description": "Driver discipline, compliance, safety checklists, and priority queue.",
       "item": [
         {
@@ -1006,7 +1006,7 @@
           }
         },
         {
-          "name": "Compliance Check — All Drivers",
+          "name": "Compliance Check \u2014 All Drivers",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/discipline/compliance-check",
@@ -1102,7 +1102,7 @@
       ]
     },
     {
-      "name": "💰 Quote Bidding (Industrial)",
+      "name": "\ud83d\udcb0 Quote Bidding (Industrial)",
       "description": "Multi-driver bidding for industrial/heavy quotes. Customer compares bids and accepts the best.",
       "item": [
         {
@@ -1143,6 +1143,919 @@
             ],
             "url": "{{base_url}}/api/quotes/{{quoteId}}/bids/BID_ID_HERE/accept",
             "description": "Accepts winning bid, rejects all others automatically, creates linked job with bid price and ETA."
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udee1 Admin Safety Dashboard",
+      "item": [
+        {
+          "name": "Live Monitor (All Active Jobs)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/live",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "live"
+              ]
+            },
+            "description": "Returns all active jobs with color (red/yellow/green), open incidents, unread alerts."
+          }
+        },
+        {
+          "name": "Safety Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "analytics"
+              ]
+            },
+            "description": "Today's stats: total jobs, high-risk count, incidents, avg response time, drivers online."
+          }
+        },
+        {
+          "name": "Admin Alerts Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/alerts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "alerts"
+              ]
+            },
+            "description": "All unread admin alerts (panic, inactivity, fraud)."
+          }
+        },
+        {
+          "name": "Report Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents"
+              ]
+            },
+            "description": "types: unsafe_behavior | fraud | delay | damage | no_show | overcharging | panic_triggered",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"unsafe_behavior\",\n  \"description\": \"Driver was behaving erratically.\",\n  \"reportedBy\": \"user\",\n  \"reporterId\": \"USER_ID\",\n  \"jobId\": \"JOB_ID\",\n  \"riskLevel\": \"high\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List Incidents (Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents?status=open&riskLevel=high",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents?status=open&riskLevel=high"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get Incident Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/INCIDENT_ID",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "INCIDENT_ID"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Admin Action",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/INCIDENT_ID/action",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "INCIDENT_ID",
+                "action"
+              ]
+            },
+            "description": "action: warn | suspend | ban | resolve | escalate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"warn\",\n  \"adminId\": \"ADMIN_ID\",\n  \"notes\": \"First offense.\",\n  \"driverId\": \"DRIVER_ID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "\ud83d\udea8 Panic Button",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/panic",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "panic"
+              ]
+            },
+            "description": "Triggers critical alert, flags job red, creates incident \u2014 one call.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\",\n  \"triggeredBy\": \"USER_ID\",\n  \"location\": {\n    \"lat\": 25.2854,\n    \"lng\": 51.531\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inactivity Check (Flag Idle Jobs)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/inactivity-check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "inactivity-check"
+              ]
+            },
+            "description": "Checks all active jobs \u2014 flags any with no update for 15+ minutes."
+          }
+        },
+        {
+          "name": "Mark Alert Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/incidents/alerts/ALERT_ID/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "alerts",
+                "ALERT_ID",
+                "read"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd0d Fraud Detection",
+      "item": [
+        {
+          "name": "Flagged Jobs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fraud/jobs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "fraud",
+                "jobs"
+              ]
+            },
+            "description": "All jobs flagged as suspicious or high-risk."
+          }
+        },
+        {
+          "name": "Suspicious Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fraud/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "fraud",
+                "users"
+              ]
+            },
+            "description": "Top users grouped by fraud score and flagged job count."
+          }
+        },
+        {
+          "name": "Fraud Score for Job",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fraud/score/JOB_ID",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "fraud",
+                "score",
+                "JOB_ID"
+              ]
+            },
+            "description": "Score breakdown: cancel rate, price deviation, location mismatch, etc."
+          }
+        },
+        {
+          "name": "Run Fraud Check on Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fraud/check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "fraud",
+                "check"
+              ]
+            },
+            "description": "Calculates and stores fraud score on the job document.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Apply Fraud Penalty",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fraud/action",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "fraud",
+                "action"
+              ]
+            },
+            "description": "level: warning | temporary_block (7 days) | permanent_ban",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"USER_ID\",\n  \"driverId\": null,\n  \"level\": \"warning\",\n  \"flagId\": \"FLAG_ID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\u2696\ufe0f Dispute Resolution (ADR)",
+      "item": [
+        {
+          "name": "Submit Dispute (Auto-Resolves)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disputes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disputes"
+              ]
+            },
+            "description": "types: overcharging | service_not_completed | delay | wrong_service | damage | no_show | fraud\nSystem auto-resolves if confidence >= 80%.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\",\n  \"type\": \"overcharging\",\n  \"description\": \"Driver charged double the estimate.\",\n  \"reportedBy\": \"user\",\n  \"reporterId\": \"USER_ID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "All Disputes (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disputes?status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disputes?status=pending"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "My Disputes (User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disputes/my/USER_ID",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disputes",
+                "my",
+                "USER_ID"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Dispute Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disputes/DISPUTE_ID",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disputes",
+                "DISPUTE_ID"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Admin Resolve / Override",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disputes/DISPUTE_ID/resolve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disputes",
+                "DISPUTE_ID",
+                "resolve"
+              ]
+            },
+            "description": "decisions: refund_user | partial_refund | charge_user | pay_driver | escalate | no_action",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminDecision\": \"partial_refund\",\n  \"adminId\": \"ADMIN_ID\",\n  \"adminNotes\": \"Evidence supports partial charge.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\uddba Safety System 2.0",
+      "item": [
+        {
+          "name": "Pre-Job Risk Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/safety/risk-check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "risk-check"
+              ]
+            },
+            "description": "locationType: highway | industrial_zone | desert | basement | residential\nReturns risk score, level (low/medium/high/critical), and dynamic warning messages.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationType\": \"highway\",\n  \"serviceType\": \"tow\",\n  \"vehicleType\": \"Sedan\",\n  \"scheduledPickupTime\": \"23:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Generate Job PIN (Customer Gets PIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/safety/pin/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "pin",
+                "generate"
+              ]
+            },
+            "description": "Returns 4-digit PIN to customer. Driver must enter this at arrival. PIN is hashed in DB.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify PIN (Driver Enters at Arrival)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/safety/pin/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "pin",
+                "verify"
+              ]
+            },
+            "description": "If correct, job moves to in_progress automatically.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\",\n  \"pin\": \"1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Customer Confirms Safety",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/safety/confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "confirm"
+              ]
+            },
+            "description": "Must be called before driver is dispatched on high-risk jobs.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\",\n  \"userId\": \"USER_ID\",\n  \"confirmations\": [\n    \"hazard_lights_on\",\n    \"away_from_traffic\",\n    \"inside_vehicle\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Post-Job Safety Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/safety/feedback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "feedback"
+              ]
+            },
+            "description": "Rating 1-2 or feltSafe=false auto-creates an incident.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"JOB_ID\",\n  \"userId\": \"USER_ID\",\n  \"feltSafe\": true,\n  \"safetyRating\": 5,\n  \"incidentReport\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Job Safety State",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/safety/job/JOB_ID",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "job",
+                "JOB_ID"
+              ]
+            },
+            "description": "Returns: riskLevel, safetyConfirmed, pinVerified, isPanicTriggered, safetyFlags."
           }
         }
       ]
