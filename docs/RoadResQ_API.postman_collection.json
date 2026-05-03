@@ -1,0 +1,1075 @@
+{
+  "info": {
+    "_postman_id": "roadresq-api-collection-v1",
+    "name": "RoadResQ API",
+    "description": "Complete REST API collection for the RoadResQ backend.\n\n**Base URL:** `http://localhost:3000`\n\n## Setup\n1. Import this collection into Postman\n2. Import `RoadResQ_Local.postman_environment.json` as your environment\n3. Select the **RoadResQ Local** environment from the top-right dropdown\n4. Start the backend server: `cd backend && npm install && node server.js`\n5. Hit any endpoint!\n\n## Auth Flow\n- Call `POST /api/auth/register` to create a user\n- The `userId` will be auto-saved to your environment\n- Use the `userId` in job/driver calls",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "description": "Authentication endpoints — register and login users.",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success' && res.data && res.data.uid) {",
+                  "    pm.environment.set('userId', res.data.uid);",
+                  "    pm.environment.set('userRole', res.data.role);",
+                  "    console.log('✅ userId saved:', res.data.uid);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has success status', () => {",
+                  "    pm.expect(res.status).to.equal('success');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kent Reyes\",\n  \"email\": \"kent@roadresq.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+63 912 345 6789\",\n  \"role\": \"customer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "**POST /api/auth/register**\n\nCreates a new Firebase Auth account + Firestore user document.\n\n**Roles:** `customer` | `driver` | `garage` | `admin`\n\n**Auto-saves `userId` to environment on success.**\n\n**Validation:**\n- `name` — required\n- `email` — required, valid email\n- `password` — required, min 6 chars\n- `phone` — required\n\n**Success Response (201):**\n```json\n{\n  \"status\": \"success\",\n  \"data\": {\n    \"uid\": \"abc123\",\n    \"name\": \"Kent Reyes\",\n    \"email\": \"kent@roadresq.com\",\n    \"phone\": \"+63 912 345 6789\",\n    \"role\": \"customer\",\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\"\n  }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success' && res.data && res.data.uid) {",
+                  "    pm.environment.set('driverUserId', res.data.uid);",
+                  "    console.log('✅ driverUserId saved:', res.data.uid);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan Driver\",\n  \"email\": \"driver@roadresq.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+63 917 000 0001\",\n  \"role\": \"driver\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registers a driver account. After registering, create a driver profile using **POST /api/drivers**."
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Verify ID Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success') {",
+                  "    pm.environment.set('userId', res.data.uid);",
+                  "    pm.environment.set('userRole', res.data.role);",
+                  "    console.log('✅ Logged in as:', res.data.name);",
+                  "}",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{firebaseIdToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "**POST /api/auth/login**\n\nVerifies a Firebase ID Token (obtained from the Flutter client after sign-in) and returns the user profile from Firestore.\n\n**How to get the `idToken` from Flutter:**\n```dart\nfinal token = await FirebaseAuth.instance.currentUser?.getIdToken();\n```\n\n**Or for testing:** Get it from the Firebase Auth Emulator / REST API:\n```\nPOST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=YOUR_API_KEY\nBody: { \"email\": \"...\", \"password\": \"...\", \"returnSecureToken\": true }\n```\nCopy the `idToken` from the response."
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Server health check. Returns API version and all available endpoints."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "💼 Jobs",
+      "description": "Job creation, listing, filtering, accepting, and status updates.",
+      "item": [
+        {
+          "name": "Create Job (Tow — Sedan)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success' && res.data && res.data.id) {",
+                  "    pm.environment.set('jobId', res.data.id);",
+                  "    console.log('✅ jobId saved:', res.data.id);",
+                  "    console.log('   category:', res.data.category);",
+                  "    console.log('   price:', res.data.price);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Category is leisure', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data.category).to.equal('leisure');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"tow\",\n  \"vehicleType\": \"Sedan\",\n  \"pickup\": \"123 Rizal Ave, Manila\",\n  \"drop\": \"AutoFix Garage, Quezon City\",\n  \"distanceKm\": 8\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/jobs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"]
+            },
+            "description": "**POST /api/jobs**\n\nCreates a new tow job for a Sedan.\n\n**Auto-detected category:** `leisure`\n**Auto-calculated price:** `250 + (8 × 5 × 1.0) = 290`\n\n**serviceType options:** `tow` | `repair` | `heavy` | `quote`\n\n**vehicleType options (Tow):** `Sedan` | `SUV` | `4x4` | `Motorcycle` | `ATV`\n\n**vehicleType options (Heavy):** `Precast Block` | `Pallets/Bricks` | `Container` | `Generator`\n\n**Auto-saves `jobId` to environment.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Job (Heavy — Container)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success' && res.data && res.data.id) {",
+                  "    pm.environment.set('heavyJobId', res.data.id);",
+                  "    console.log('✅ heavyJobId saved:', res.data.id);",
+                  "    console.log('   category:', res.data.category);",
+                  "    console.log('   price:', res.data.price);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Category is heavy', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data.category).to.equal('heavy');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"heavy\",\n  \"vehicleType\": \"Container\",\n  \"pickup\": \"Port of Manila, Manila\",\n  \"drop\": \"Clark Industrial Zone, Pampanga\",\n  \"distanceKm\": 80,\n  \"description\": \"20ft shipping container, fragile cargo\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/jobs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"]
+            },
+            "description": "Creates a heavy transport job.\n\n**Auto-detected category:** `heavy`\n**Auto-calculated price:** `250 + (80 × 5 × 1.5) = 850`"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Job (Repair — Garage)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success' && res.data && res.data.id) {",
+                  "    pm.environment.set('repairJobId', res.data.id);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"repair\",\n  \"vehicleType\": \"SUV\",\n  \"pickup\": \"456 EDSA, Mandaluyong\",\n  \"drop\": \"BestFix Garage, Makati\",\n  \"distanceKm\": 5,\n  \"repairOption\": \"garage\",\n  \"description\": \"Engine overheating, needs inspection\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/jobs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"]
+            },
+            "description": "Creates a repair job with garage drop-off.\n\n**repairOption:** `garage` | `on_site`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Jobs (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/jobs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"]
+            },
+            "description": "**GET /api/jobs**\n\nReturns all jobs in the system. Admin use only.\n\nOrdered by `createdAt` descending (newest first)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Jobs by User (History)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "console.log('Jobs for user:', res.data.length);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/jobs?userId={{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                { "key": "userId", "value": "{{userId}}", "description": "Firebase Auth UID of the customer" }
+              ]
+            },
+            "description": "**GET /api/jobs?userId=**\n\nReturns job history for a specific customer.\nUsed in the Job History screen in Flutter."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Jobs by Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/jobs?driverId={{driverUserId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                { "key": "driverId", "value": "{{driverUserId}}", "description": "Firebase Auth UID of the driver" }
+              ]
+            },
+            "description": "**GET /api/jobs?driverId=**\n\nReturns all jobs completed or accepted by a specific driver."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Jobs (for Driver)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "console.log('Available jobs:', res.data.length);",
+                  "if (res.data.length > 0) {",
+                  "    pm.environment.set('availableJobId', res.data[0].id);",
+                  "    console.log('First available job ID saved:', res.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/jobs/available?vehicleType=Sedan",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs", "available"],
+              "query": [
+                { "key": "vehicleType", "value": "Sedan", "description": "The driver's vehicle type — filters matching pending jobs" }
+              ]
+            },
+            "description": "**GET /api/jobs/available**\n\nReturns pending jobs that match the driver's `vehicleType`.\n\n**Driver Filtering (Week 3):**\n- `status == 'pending'`\n- `vehicleType == driver's vehicleType`\n\n**vehicleType examples:** `Sedan`, `SUV`, `4x4`, `Motorcycle`, `ATV`, `Container`, `Generator`\n\n**Auto-saves first job ID to `availableJobId`.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Job",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/jobs/{{jobId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs", "{{jobId}}"]
+            },
+            "description": "**GET /api/jobs/:id**\n\nReturns a single job by its ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Price Estimate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/jobs/price-estimate?vehicleType=Container&distanceKm=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs", "price-estimate"],
+              "query": [
+                { "key": "vehicleType", "value": "Container" },
+                { "key": "distanceKm", "value": "20" }
+              ]
+            },
+            "description": "**GET /api/jobs/price-estimate**\n\nCalculates the price estimate BEFORE creating a job.\n\n**Formula:**\n- Leisure: `250 + (km × 5 × 1.0)`\n- Heavy: `250 + (km × 5 × 1.5)`\n\nExample for Container, 20km: `250 + (20 × 5 × 1.5) = 400`"
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Job (Driver)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Job is accepted', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data.status).to.equal('accepted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driverUserId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/jobs/{{jobId}}/accept",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs", "{{jobId}}", "accept"]
+            },
+            "description": "**PUT /api/jobs/:id/accept**\n\nDriver accepts a pending job.\n\n**Updates:**\n- `status` → `accepted`\n- `driverId` → driver's UID\n- `acceptedAt` → current timestamp\n\n**Error if job is not pending (409 Conflict).**"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Job Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/jobs/{{jobId}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs", "{{jobId}}", "status"]
+            },
+            "description": "**PUT /api/jobs/:id/status**\n\nUpdates a job's status.\n\n**Valid values:**\n- `pending`\n- `accepted`\n- `in_progress`\n- `at_garage`\n- `completed`\n- `cancelled`\n\nSetting `completed` also adds `completedAt` timestamp."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🚗 Drivers",
+      "description": "Driver profile, online/offline status, and admin approval.",
+      "item": [
+        {
+          "name": "Create Driver Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success') {",
+                  "    console.log('✅ Driver profile created for:', res.data.name);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"{{driverUserId}}\",\n  \"name\": \"Juan Driver\",\n  \"email\": \"driver@roadresq.com\",\n  \"phone\": \"+63 917 000 0001\",\n  \"vehicleType\": \"Sedan\",\n  \"licenseNumber\": \"N01-23-456789\",\n  \"experience\": \"3 years\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/drivers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers"]
+            },
+            "description": "**POST /api/drivers**\n\nCreates a driver profile in Firestore. Run this AFTER registering a driver via `/api/auth/register`.\n\n**vehicleType options (Tow):** `Sedan` | `SUV` | `4x4` | `Motorcycle` | `ATV`\n**vehicleType options (Heavy):** `Precast Block` | `Pallets/Bricks` | `Container` | `Generator`\n\n**Note:** New drivers have `isApproved: false` by default. Admin must approve before they can receive jobs."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Drivers (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "console.log('Total drivers:', res.data.length);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/drivers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers"]
+            },
+            "description": "**GET /api/drivers**\n\nReturns all drivers. Admin use.\n\nAdd `?vehicleType=Sedan` to filter drivers by vehicle type (used for matching)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Drivers by Vehicle Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/drivers?vehicleType=Sedan",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers"],
+              "query": [
+                { "key": "vehicleType", "value": "Sedan", "description": "Filter to approved + online drivers with this vehicle type" }
+              ]
+            },
+            "description": "**GET /api/drivers?vehicleType=**\n\nReturns approved + online drivers matching the given vehicle type.\nUsed for driver matching logic."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Driver by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/drivers/{{driverUserId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers", "{{driverUserId}}"]
+            },
+            "description": "**GET /api/drivers/:id**\n\nReturns a single driver's profile by Firebase UID."
+          },
+          "response": []
+        },
+        {
+          "name": "Set Driver Online",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Driver is online', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data.isOnline).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverUid\": \"{{driverUserId}}\",\n  \"isOnline\": true,\n  \"location\": {\n    \"lat\": 14.5995,\n    \"lng\": 120.9842\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/drivers/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers", "status"]
+            },
+            "description": "**PUT /api/drivers/status**\n\nSets a driver's online/offline status.\n\n- `isOnline: true` → driver is available to receive jobs\n- `isOnline: false` → driver goes offline\n- `location` (optional) → saves driver's current GPS coordinates\n\n**Only `isOnline: true` + `isApproved: true` drivers appear in job matching.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Driver Offline",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverUid\": \"{{driverUserId}}\",\n  \"isOnline\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/drivers/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers", "status"]
+            },
+            "description": "Sets driver as offline. They will not receive any job broadcasts."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Driver (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Driver is approved', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data.isApproved).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approve\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/drivers/{{driverUserId}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "drivers", "{{driverUserId}}", "approve"]
+            },
+            "description": "**PUT /api/drivers/:id/approve**\n\nAdmin approves a driver.\n- `approve: true` → driver can now receive jobs\n- `approve: false` → revoke driver approval\n\n**A driver must be both `isApproved: true` AND `isOnline: true` to appear in job matching.**"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Quote Requests",
+      "description": "Quote request flow for heavy/special load jobs.",
+      "item": [
+        {
+          "name": "Submit Quote Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success' && res.data && res.data.id) {",
+                  "    pm.environment.set('quoteId', res.data.id);",
+                  "    console.log('✅ quoteId saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"itemType\": \"Generator\",\n  \"description\": \"1000KVA industrial generator, needs heavy crane loading\",\n  \"pickup\": \"Batangas Port, Batangas City\",\n  \"drop\": \"PEZA Industrial Zone, Calamba, Laguna\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/quotes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes"]
+            },
+            "description": "**POST /api/quotes**\n\nCustomer submits a quote request for a heavy or special load job.\n\nThe job is flagged as `status: 'pending'` until admin responds with a price.\n\n**Auto-saves `quoteId` to environment.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Quotes (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/quotes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes"]
+            },
+            "description": "**GET /api/quotes**\n\nReturns all quote requests. Admin use."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Quotes (Customer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/quotes?userId={{userId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes"],
+              "query": [
+                { "key": "userId", "value": "{{userId}}" }
+              ]
+            },
+            "description": "**GET /api/quotes?userId=**\n\nReturns all quote requests submitted by a specific customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Responds to Quote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is quoted', () => {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.data.status).to.equal('quoted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quotedPrice\": 5500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/quotes/{{quoteId}}/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes", "{{quoteId}}", "respond"]
+            },
+            "description": "**PUT /api/quotes/:id/respond**\n\nAdmin responds to a quote request with a final price.\n\n**Updates:**\n- `quotedPrice` → the admin's price\n- `status` → `quoted`\n- `respondedAt` → current timestamp\n\nCustomer can then view this price and accept or reject."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🧪 Full Flow Test",
+      "description": "Run these in order to test the complete booking flow end-to-end.",
+      "item": [
+        {
+          "name": "STEP 1 — Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success') {",
+                  "    pm.environment.set('userId', res.data.uid);",
+                  "    console.log('STEP 1 ✅ Customer registered. UID:', res.data.uid);",
+                  "}",
+                  "pm.test('Customer registered', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Customer\",\n  \"email\": \"testcustomer{{$timestamp}}@roadresq.com\",\n  \"password\": \"testpass123\",\n  \"phone\": \"+63 900 000 0001\",\n  \"role\": \"customer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "description": "Register a customer. Uses `{{$timestamp}}` to make email unique each run."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 2 — Register Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success') {",
+                  "    pm.environment.set('driverUserId', res.data.uid);",
+                  "    console.log('STEP 2 ✅ Driver registered. UID:', res.data.uid);",
+                  "}",
+                  "pm.test('Driver registered', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Driver\",\n  \"email\": \"testdriver{{$timestamp}}@roadresq.com\",\n  \"password\": \"testpass123\",\n  \"phone\": \"+63 900 000 0002\",\n  \"role\": \"driver\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "description": "Register a driver account."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 3 — Create Driver Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Driver profile created', () => pm.response.to.have.status(201));",
+                  "console.log('STEP 3 ✅ Driver profile created. isApproved: false');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"{{driverUserId}}\",\n  \"name\": \"Test Driver\",\n  \"email\": \"testdriver@roadresq.com\",\n  \"phone\": \"+63 900 000 0002\",\n  \"vehicleType\": \"Sedan\",\n  \"licenseNumber\": \"N01-99-TEST01\",\n  \"experience\": \"2 years\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/drivers", "host": ["{{base_url}}"], "path": ["api", "drivers"] },
+            "description": "Create driver profile in Firestore after auth registration."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 4 — Admin Approves Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Driver approved', () => pm.response.to.have.status(200));",
+                  "console.log('STEP 4 ✅ Driver approved. isApproved: true');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approve\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/drivers/{{driverUserId}}/approve", "host": ["{{base_url}}"], "path": ["api", "drivers", "{{driverUserId}}", "approve"] },
+            "description": "Admin approves the driver. Required before driver can receive jobs."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 5 — Driver Goes Online",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Driver online', () => pm.response.to.have.status(200));",
+                  "console.log('STEP 5 ✅ Driver is now online. Ready for jobs.');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverUid\": \"{{driverUserId}}\",\n  \"isOnline\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/drivers/status", "host": ["{{base_url}}"], "path": ["api", "drivers", "status"] },
+            "description": "Driver goes online to start receiving jobs."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 6 — Customer Creates Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.status === 'success') {",
+                  "    pm.environment.set('jobId', res.data.id);",
+                  "    console.log('STEP 6 ✅ Job created. ID:', res.data.id);",
+                  "    console.log('   Category:', res.data.category);",
+                  "    console.log('   Price:', res.data.price);",
+                  "}",
+                  "pm.test('Job created', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"serviceType\": \"tow\",\n  \"vehicleType\": \"Sedan\",\n  \"pickup\": \"EDSA Cubao, Quezon City\",\n  \"drop\": \"North Bay Garage, Caloocan\",\n  \"distanceKm\": 12\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/jobs", "host": ["{{base_url}}"], "path": ["api", "jobs"] },
+            "description": "Customer creates a tow job. Expected price: 250 + (12 × 5 × 1.0) = 310"
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 7 — Driver Sees Available Jobs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Available jobs returned', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "console.log('STEP 7 ✅ Available jobs for Sedan driver:', res.data.length);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/jobs/available?vehicleType=Sedan", "host": ["{{base_url}}"], "path": ["api", "jobs", "available"], "query": [{ "key": "vehicleType", "value": "Sedan" }] },
+            "description": "Driver checks available jobs matching their vehicle type."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 8 — Driver Accepts Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Job accepted', () => pm.response.to.have.status(200));",
+                  "console.log('STEP 8 ✅ Job accepted by driver. Status → accepted');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driverUserId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/jobs/{{jobId}}/accept", "host": ["{{base_url}}"], "path": ["api", "jobs", "{{jobId}}", "accept"] },
+            "description": "Driver accepts the job. Status changes from pending → accepted."
+          },
+          "response": []
+        },
+        {
+          "name": "STEP 9 — Mark Job Completed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Job completed', () => pm.response.to.have.status(200));",
+                  "console.log('STEP 9 ✅ Job marked as completed. Full flow done! 🎉');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/jobs/{{jobId}}/status", "host": ["{{base_url}}"], "path": ["api", "jobs", "{{jobId}}", "status"] },
+            "description": "Final step — mark the job as completed."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
