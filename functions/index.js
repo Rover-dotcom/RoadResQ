@@ -42,58 +42,53 @@ app.use((req, _res, next) => {
 });
 
 // ─── Routes (deployed copies — kept in sync with backend/) ───────────────────
-const authRoutes      = require('./routes/authRoutes');
-const jobRoutes       = require('./routes/jobRoutes');
-const driverRoutes    = require('./routes/driverRoutes');
-const quoteRoutes     = require('./routes/quoteRoutes');
-const garageRoutes    = require('./routes/garageRoutes');      // Week 4: on-site repair
-const disciplineRoutes = require('./routes/disciplineRoutes'); // Week 4: driver discipline
+const authRoutes       = require('./routes/authRoutes');
+const jobRoutes        = require('./routes/jobRoutes');
+const driverRoutes     = require('./routes/driverRoutes');
+const quoteRoutes      = require('./routes/quoteRoutes');
+const garageRoutes     = require('./routes/garageRoutes');
+const disciplineRoutes = require('./routes/disciplineRoutes');
+const incidentRoutes   = require('./routes/incidentRoutes');
+const fraudRoutes      = require('./routes/fraudRoutes');
+const disputeRoutes    = require('./routes/disputeRoutes');
+const safetyRoutes     = require('./routes/safetyRoutes');
+const dashboardRoutes  = require('./routes/dashboardRoutes');
+const completionRoutes = require('./routes/completionRoutes');
 
 app.use('/api/auth',            authRoutes);
 app.use('/api/jobs',            jobRoutes);
 app.use('/api/drivers',         driverRoutes);
 app.use('/api/quotes',          quoteRoutes);
-app.use('/api/garage-requests', garageRoutes);     // Week 4
-app.use('/api/discipline',      disciplineRoutes); // Week 4
+app.use('/api/garage-requests', garageRoutes);
+app.use('/api/discipline',      disciplineRoutes);
+app.use('/api/incidents',       incidentRoutes);
+app.use('/api/fraud',           fraudRoutes);
+app.use('/api/disputes',        disputeRoutes);
+app.use('/api/safety',          safetyRoutes);
+app.use('/api/dashboard',       dashboardRoutes);
+app.use('/api/completion',      completionRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => res.json({
   service: 'RoadResQ API',
-  version: '4.1.0',
+  version: '6.0.0',
   status: 'running',
   region: 'me-central1 (Doha, Qatar)',
   project: 'roadresq-bd6b0',
   endpoints: {
-    auth:           '/api/auth/register | /api/auth/login',
-    jobs:           '/api/jobs | /api/jobs/my-jobs | /api/jobs/:id/status | /api/jobs/available | /api/jobs/price-estimate | /api/jobs/service-info',
-    drivers:        '/api/drivers | /api/drivers/truck-types | /api/drivers/:id/status | /api/drivers/:id/online | /api/drivers/:id/offline',
-    quotes:         '/api/quotes | /api/quotes/my-quotes | /api/quotes/:id/bids | /api/quotes/:id/bid',
-    garageRequests: '/api/garage-requests (on-site repair: broadcast → estimate → accept)',
-    discipline:     '/api/discipline (warnings, compliance, safety checklists, priority queue, admin-review)',
+    auth:           '/api/auth',
+    jobs:           '/api/jobs',
+    drivers:        '/api/drivers',
+    quotes:         '/api/quotes',
+    garageRequests: '/api/garage-requests',
+    discipline:     '/api/discipline',
+    incidents:      '/api/incidents',
+    fraud:          '/api/fraud',
+    disputes:       '/api/disputes',
+    safety:         '/api/safety',
+    dashboard:      '/api/dashboard (admin | driver/:id | user/:id | garage/:id)',
+    completion:     '/api/completion (/:id/complete | /:id/report | /:id/payment | archive-old | cleanup-files | audit-logs)',
   },
-  week4Features: [
-    '10km geo-radius matching (haversine)',
-    'Equipment type constraints (boom_truck / flatbed / flatbed_tow)',
-    'Basement/restricted height filter (clearanceHeightMm)',
-    'Gate pass enforcement (requiresGatePass)',
-    'Expert-first routing (yearsExperience priority)',
-    'Driver discipline: 3-strike suspension + no-show fee (QR 50)',
-    'Customer no-show charge: QR 50.00 (5000 halala)',
-    'Document compliance: 30-day notify, 7-day critical, expired = block',
-    'Integer halala pricing (5000 = QR 50.00)',
-    'On-site repair estimate bidding (first-accept-wins, 15min auto-cancel)',
-    'Quote bidding: multi-driver bids, price-sorted, best highlighted, auto job creation',
-    '"Others" dynamic input across all 4 service categories',
-    'Job priority queue: urgency + wait time scoring',
-    'Admin review queue for custom/Others jobs',
-    'Pre-trip driver safety checklist (6 mandatory items)',
-    'Customer safety confirmation (3 mandatory items)',
-    'Traffic buffer ETA: +25% during Qatar peak hours',
-    'Driver online/offline toggle with compliance gating',
-    'Real-time dispatch: customer my-jobs + live job status',
-    'Scheduled pickup: isScheduled + scheduledPickupDate + scheduledPickupTime (all service types)',
-    'Cancellation tracking: cancellationReason + cancelledBy on all cancellations',
-  ],
 }));
 
 // ─── 404 + Error Handlers ─────────────────────────────────────────────────────

@@ -109,6 +109,131 @@ async function verifyJobPIN(jobId, enteredPin) {
   return { success: isCorrect, error: isCorrect ? null : 'Incorrect PIN. Please check with customer.' };
 }
 
+// ─── 2b. Service-Specific Safety Checklists ──────────────────────────────────
+
+/**
+ * Service-specific safety checklists that drivers MUST complete before starting a job.
+ * For tow jobs: the car must be securely mounted on the tow truck.
+ * For heavy equipment: the load must be secured with heavy-duty chains.
+ * For garage/on-site: tools and area must be verified.
+ */
+const SERVICE_SAFETY_CHECKLISTS = {
+  tow: {
+    label: 'Tow — Vehicle Mount Safety Check',
+    items: {
+      vehicleLoadedSecurely:    'Vehicle is securely loaded on flatbed / tow hook',
+      strapsChainsTightened:    'All straps and chains are tightened and locked',
+      handbrakeEngaged:         'Handbrake engaged on towed vehicle',
+      towHookWinchConnected:    'Tow hook / winch properly connected and tested',
+      towedVehicleInNeutral:    'Towed vehicle is in neutral gear',
+      tailLightsReflectors:     'Tail lights and reflectors are visible from behind',
+      noLooseItems:             'No loose items inside or on top of towed vehicle',
+      wheelLiftSecured:         'Wheel lift / dolly secured (if applicable)',
+    },
+  },
+  heavy_equipment: {
+    label: 'Heavy Equipment — Load Safety Check',
+    items: {
+      heavyDutyChainsSecured:   'Equipment secured with heavy-duty chains on all corners',
+      boomArmRetracted:         'Boom / arm fully retracted and locked',
+      outriggersRetracted:      'Outriggers retracted and pinned',
+      transportPinsInPlace:     'Transport pins and locking devices in place',
+      loadWithinCapacity:       'Load weight does not exceed flatbed rated capacity',
+      heightClearanceChecked:   'Height clearance checked for route (bridges, tunnels)',
+      warningFlagsPlaced:       'Wide-load warning flags / lights placed (if oversized)',
+    },
+  },
+  garage: {
+    label: 'On-Site Repair — Work Area Safety Check',
+    items: {
+      areaSecured:              'Work area is clear of traffic and pedestrians',
+      toolsReady:               'All required tools and parts are ready',
+      vehicleLiftSafe:          'Vehicle lift / jack stands are stable (if raised)',
+      fireExtinguisherNearby:   'Fire extinguisher accessible nearby',
+      customerInformedOfScope:  'Customer has been informed of repair scope and duration',
+    },
+  },
+  quote_industrial: {
+    label: 'Industrial Load — Transport Safety Check',
+    items: {
+      loadSecured:              'Industrial load secured and balanced on trailer',
+      dimensionsVerified:       'Load dimensions verified against route clearance',
+      weightDistributed:        'Weight is evenly distributed across axles',
+      specialPermitsReady:      'Special permits and gate pass documents ready',
+      escortVehicleArranged:    'Escort vehicle arranged (if oversized load)',
+    },
+  },
+};
+
+/**
+ * Returns the checklist items for a given service type.
+ * @param {string} serviceType — 'tow' | 'heavy_equipment' | 'garage' | 'quote_industrial'
+ * @returns {{ label: string, items: Record<string, string> } | null}
+ */
+function getServiceChecklist(serviceType) {
+  return SERVICE_SAFETY_CHECKLISTS[serviceType] || null;
+}
+
+/**
+ * Validates and records a service-specific safety check.
+ * All items must be checked (true) before the job can proceed.
+ *
+ * @param {string} jobId
+ * @param {string} driverId
+ * @param {string} serviceType
+ * @param {Record<string, boolean>} submittedChecks — e.g. { vehicleLoadedSecurely: true, ... }
+ * @returns {{ success, failedItems?, record? }}
+ */
+async function submitServiceSafetyCheck(jobId, driverId, serviceType, submittedChecks) {
+  const checklist = SERVICE_SAFETY_CHECKLISTS[serviceType];
+  if (!checklist) {
+    return { success: false, error: `No safety checklist defined for service type: ${serviceType}` };
+  }
+
+  const requiredKeys = Object.keys(checklist.items);
+  const results = {};
+  const failedItems = [];
+
+  for (const key of requiredKeys) {
+    const passed = !!submittedChecks[key];
+    results[key] = passed;
+    if (!passed) failedItems.push({ key, label: checklist.items[key] });
+  }
+
+  if (failedItems.length > 0) {
+    return {
+      success: false,
+      error: `Safety check incomplete. ${failedItems.length} item(s) not confirmed.`,
+      failedItems,
+      results,
+    };
+  }
+
+  // All passed — save to Firestore
+  const record = {
+    jobId,
+    driverId,
+    serviceType,
+    checklistLabel: checklist.label,
+    type: 'service_safety_check',
+    checks: results,
+    allPassed: true,
+    submittedAt: new Date().toISOString(),
+  };
+
+  await db.collection('safety_checklists').doc(`service_${jobId}`).set(record);
+
+  // Update job to indicate service safety check passed
+  await db.collection('jobs').doc(jobId).update({
+    serviceSafetyCheckPassed: true,
+    serviceSafetyCheckAt: record.submittedAt,
+    serviceSafetyCheckType: serviceType,
+    updatedAt: new Date().toISOString(),
+  });
+
+  return { success: true, record };
+}
+
 // ─── 3. Job Safety State ─────────────────────────────────────────────────────
 
 /**
@@ -249,5 +374,6 @@ async function recordSafetyFeedback(jobId, userId, { feltSafe, safetyRating, inc
 
 module.exports = {
   calculateRiskScore, generateJobPIN, verifyJobPIN,
+  getServiceChecklist, submitServiceSafetyCheck, SERVICE_SAFETY_CHECKLISTS,
   updateJobSafetyState, triggerPanic, checkInactiveJobs, recordSafetyFeedback,
 };

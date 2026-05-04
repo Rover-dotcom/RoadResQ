@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "RoadResQ API v5.0 \u2014 Complete",
-    "description": "RoadResQ complete API v5.0.0. Includes: Auth (Firebase token), Jobs, Drivers, Quotes, Garage, Discipline, Admin Safety Dashboard, Fraud Detection, Dispute Resolution (ADR), Safety System 2.0.",
+    "name": "RoadResQ API v6.0 — Complete",
+    "description": "RoadResQ complete API v6.0.0. Includes: Auth, Jobs, Drivers, Quotes, Garage, Discipline, Safety, Dashboard (role-separated), Completion (finalization, payments, reports, cleanup, audit).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "4.1.0"
+    "version": "6.0.0"
   },
   "variable": [
     {
@@ -2056,6 +2056,174 @@
               ]
             },
             "description": "Returns: riskLevel, safetyConfirmed, pinVerified, isPanicTriggered, safetyFlags."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard (Role-Separated)",
+      "description": "Role-separated dashboards. Each role sees ONLY their data.",
+      "item": [
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard/admin", "host": ["{{base_url}}"], "path": ["api", "dashboard", "admin"] },
+            "description": "Returns: active jobs, incidents, fraud flags, disputes, alerts, pending payments."
+          }
+        },
+        {
+          "name": "Driver Dashboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard/driver/{{driverId}}", "host": ["{{base_url}}"], "path": ["api", "dashboard", "driver", "{{driverId}}"] },
+            "description": "Returns: driver profile, active jobs, completed jobs, earnings, warnings."
+          }
+        },
+        {
+          "name": "User Dashboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard/user/{{userId}}", "host": ["{{base_url}}"], "path": ["api", "dashboard", "user", "{{userId}}"] },
+            "description": "Returns: user profile, active jobs, past jobs, disputes, safety feedback, spending."
+          }
+        },
+        {
+          "name": "Garage Dashboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard/garage/{{garageId}}", "host": ["{{base_url}}"], "path": ["api", "dashboard", "garage", "{{garageId}}"] },
+            "description": "Returns: active requests, completed repairs, pending quotes, earnings."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Completion + Payments + Reports",
+      "description": "Week 5: Job finalization, payment escrow/release, report generation, file cleanup, archiving, audit logging.",
+      "item": [
+        {
+          "name": "Complete/Finalize Job",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/complete", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "complete"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"completedBy\": \"driver_001\",\n  \"completedByRole\": \"driver\"\n}" },
+            "description": "THE MAIN FLOW. Validates job -> checks disputes -> generates report -> releases payment -> soft-deletes files -> marks job completed."
+          }
+        },
+        {
+          "name": "Hold Payment (Escrow)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/hold-payment", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "hold-payment"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 15000,\n  \"customerId\": \"user_001\",\n  \"driverId\": \"driver_001\"\n}" },
+            "description": "Holds payment in escrow (amount in halala: 15000 = QR 150.00). Called when driver accepts job."
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/payment", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "payment"] },
+            "description": "Returns payment record: amount, status (pending/held/released/refunded/disputed), timestamps."
+          }
+        },
+        {
+          "name": "List All Payments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/payments?status=held&limit=20", "host": ["{{base_url}}"], "path": ["api", "completion", "payments"], "query": [{ "key": "status", "value": "held" }, { "key": "limit", "value": "20" }] },
+            "description": "List payments. Filter by status, driverId, customerId."
+          }
+        },
+        {
+          "name": "Get Job Report",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/report", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "report"] },
+            "description": "Returns comprehensive job report: timeline, payment, driver, safety, GPS, photos, disputes."
+          }
+        },
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/reports?limit=20", "host": ["{{base_url}}"], "path": ["api", "completion", "reports"], "query": [{ "key": "limit", "value": "20" }] },
+            "description": "List reports. Filter by userId or driverId."
+          }
+        },
+        {
+          "name": "Archive Old Jobs (30+ days)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/completion/archive-old", "host": ["{{base_url}}"], "path": ["api", "completion", "archive-old"] },
+            "description": "Archives completed jobs older than 30 days. Status: completed -> archived."
+          }
+        },
+        {
+          "name": "Process Pending File Deletions",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/completion/cleanup-files", "host": ["{{base_url}}"], "path": ["api", "completion", "cleanup-files"] },
+            "description": "Processes soft-deleted files past 24h grace period. Deletes from Firebase Storage with 3x retry."
+          }
+        },
+        {
+          "name": "Check Storage Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/storage-status", "host": ["{{base_url}}"], "path": ["api", "completion", "storage-status"] },
+            "description": "Returns pending deletions count, failed deletions count. Alerts admin if threshold exceeded."
+          }
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/audit-logs?limit=50", "host": ["{{base_url}}"], "path": ["api", "completion", "audit-logs"], "query": [{ "key": "limit", "value": "50" }] },
+            "description": "Returns audit log entries. Filter by eventType, entityId, entityType, actorId."
+          }
+        },
+        {
+          "name": "Get Entity Audit Trail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/audit-trail", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "audit-trail"] },
+            "description": "Returns all audit events for a specific entity (job, driver, user). Ordered chronologically."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Safety Checklists (Service-Specific)",
+      "description": "Week 4+: Service-specific safety checklists for tow mount, heavy equipment, garage, industrial.",
+      "item": [
+        {
+          "name": "Get All Checklists",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/safety/checklists", "host": ["{{base_url}}"], "path": ["api", "safety", "checklists"] },
+            "description": "Returns all available service safety checklists with their items."
+          }
+        },
+        {
+          "name": "Get Tow Checklist",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/safety/checklist/tow", "host": ["{{base_url}}"], "path": ["api", "safety", "checklist", "tow"] },
+            "description": "Returns tow-specific safety checklist (vehicle mount check)."
+          }
+        },
+        {
+          "name": "Submit Service Safety Check (Tow)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/safety/service-check", "host": ["{{base_url}}"], "path": ["api", "safety", "service-check"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"jobId\": \"job_001\",\n  \"driverId\": \"driver_001\",\n  \"serviceType\": \"tow\",\n  \"checks\": {\n    \"vehicleLoadedSecurely\": true,\n    \"strapsChainsTightened\": true,\n    \"handbrakeEngaged\": true,\n    \"towHookWinchConnected\": true,\n    \"towedVehicleInNeutral\": true,\n    \"tailLightsReflectors\": true,\n    \"noLooseItems\": true,\n    \"wheelLiftSecured\": true\n  }\n}" },
+            "description": "Driver submits tow mount safety check. ALL items must be true before job can proceed."
           }
         }
       ]

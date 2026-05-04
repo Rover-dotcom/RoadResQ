@@ -1,24 +1,25 @@
 {
-  "name": "roadresq-functions",
-  "version": "1.0.0",
-  "description": "RoadResQ Firebase Cloud Functions — RoadResQ Backend API",
-  "engines": {
-    "node": "22"
-  },
+  "name": "roadresq-backend",
+  "version": "6.0.0",
+  "description": "RoadResQ REST API backend using Express.js + Firebase Admin SDK",
   "main": "index.js",
   "scripts": {
-    "serve": "firebase emulators:start --only functions",
-    "shell": "firebase functions:shell",
-    "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-validator": "^7.0.1",
-    "firebase-admin": "^12.7.0",
+    "firebase-admin": "^13.4.0",
     "firebase-functions": "^6.3.2",
-    "uuid": "^9.0.0"
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5",
+    "express-validator": "^7.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": "20"
   }
 }

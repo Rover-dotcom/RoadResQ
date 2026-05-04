@@ -1,17 +1,20 @@
 /**
  * Safety Controller — RoadResQ Safety System 2.0
  *
- * POST /api/safety/risk-check        - Pre-job risk assessment
- * POST /api/safety/pin/generate      - Generate verification PIN for job
- * POST /api/safety/pin/verify        - Driver enters PIN at arrival
- * POST /api/safety/confirm           - Customer confirms safety before job
- * POST /api/safety/feedback          - Post-job safety feedback
- * GET  /api/safety/job/:jobId        - Get safety state of a job
+ * POST /api/safety/risk-check             - Pre-job risk assessment
+ * POST /api/safety/pin/generate           - Generate verification PIN for job
+ * POST /api/safety/pin/verify             - Driver enters PIN at arrival
+ * POST /api/safety/confirm                - Customer confirms safety before job
+ * POST /api/safety/feedback               - Post-job safety feedback
+ * GET  /api/safety/job/:jobId             - Get safety state of a job
+ * GET  /api/safety/checklist/:serviceType - Get checklist items for a service type
+ * POST /api/safety/service-check          - Submit service-specific safety check
  */
 
 const {
   calculateRiskScore, generateJobPIN, verifyJobPIN,
   updateJobSafetyState, recordSafetyFeedback,
+  getServiceChecklist, submitServiceSafetyCheck, SERVICE_SAFETY_CHECKLISTS,
 } = require('../utils/safetyEngine');
 const { db } = require('../config/firebase');
 
@@ -131,4 +134,62 @@ const getJobSafetyState = async (req, res) => {
   }
 };
 
-module.exports = { riskCheck, generatePIN, verifyPIN, confirmSafety, submitSafetyFeedback, getJobSafetyState };
+// ─── GET /api/safety/checklist/:serviceType ───────────────────────────────────
+/**
+ * Returns the checklist items for a specific service type.
+ * Frontend uses this to render the checklist UI for the driver.
+ */
+const getChecklistHandler = (req, res) => {
+  const { serviceType } = req.params;
+  const checklist = getServiceChecklist(serviceType);
+  if (!checklist) {
+    return fail(res, `No checklist defined for service type: ${serviceType}. Available: ${Object.keys(SERVICE_SAFETY_CHECKLISTS).join(', ')}`, 404);
+  }
+  return success(res, { serviceType, ...checklist });
+};
+
+// ─── GET /api/safety/checklists ───────────────────────────────────────────────
+/**
+ * Returns all available service safety checklists.
+ */
+const getAllChecklistsHandler = (_req, res) => {
+  return success(res, SERVICE_SAFETY_CHECKLISTS);
+};
+
+// ─── POST /api/safety/service-check ───────────────────────────────────────────
+/**
+ * Driver submits the service-specific safety check.
+ * e.g. for tow: vehicle mounted, straps tightened, etc.
+ * All items MUST be true before job can proceed.
+ *
+ * Body: { jobId, driverId, serviceType, checks: { vehicleLoadedSecurely: true, ... } }
+ */
+const submitServiceCheckHandler = async (req, res) => {
+  const { jobId, driverId, serviceType, checks } = req.body;
+  if (!jobId || !driverId || !serviceType) {
+    return fail(res, 'jobId, driverId, and serviceType are required.');
+  }
+  if (!checks || typeof checks !== 'object') {
+    return fail(res, 'checks must be an object with boolean values for each checklist item.');
+  }
+
+  try {
+    const result = await submitServiceSafetyCheck(jobId, driverId, serviceType, checks);
+    if (!result.success) {
+      return fail(res, result.error, 400, { failedItems: result.failedItems, results: result.results });
+    }
+    return success(res, {
+      message: `${result.record.checklistLabel} passed. Job can proceed.`,
+      record: result.record,
+    });
+  } catch (err) {
+    console.error('Service safety check error:', err);
+    return fail(res, 'Failed to submit service safety check.', 500);
+  }
+};
+
+module.exports = {
+  riskCheck, generatePIN, verifyPIN, confirmSafety,
+  submitSafetyFeedback, getJobSafetyState,
+  getChecklistHandler, getAllChecklistsHandler, submitServiceCheckHandler,
+};

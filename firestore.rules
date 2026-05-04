@@ -113,5 +113,47 @@ service cloud.firestore {
       allow read:   if isSignedIn();
       allow write:  if isAdmin();
     }
+
+    // ─── Week 5: Safety Checklists ────────────────────────────────────────────
+    match /safety_checklists/{checkId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Week 5: Payments ─────────────────────────────────────────────────────
+    match /payments/{paymentId} {
+      allow read:   if isSignedIn();               // users can read own payment status
+      allow create: if isSignedIn();               // system creates via admin SDK
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Week 5: Reports ──────────────────────────────────────────────────────
+    match /reports/{reportId} {
+      allow read:   if isSignedIn();               // users can read own job reports
+      allow create: if isSignedIn();               // system creates via admin SDK
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Week 5: Audit Logs ───────────────────────────────────────────────────
+    match /audit_logs/{logId} {
+      allow read:   if isAdmin();                  // admin only
+      allow write:  if isAdmin();                  // system writes via admin SDK
+    }
+
+    // ─── Week 5: Pending Deletions ────────────────────────────────────────────
+    match /pending_deletions/{delId} {
+      allow read:   if isAdmin();
+      allow write:  if isAdmin();
+    }
+
+    // ─── Week 5: Deletion Failures ────────────────────────────────────────────
+    match /deletion_failures/{failId} {
+      allow read:   if isAdmin();
+      allow write:  if isAdmin();
+    }
   }
 }

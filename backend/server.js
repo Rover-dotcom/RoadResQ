@@ -22,6 +22,8 @@ const incidentRoutes = require('./routes/incidentRoutes');     // Week 5: admin 
 const fraudRoutes = require('./routes/fraudRoutes');           // Week 5: fraud detection
 const disputeRoutes = require('./routes/disputeRoutes');       // Week 5: dispute resolution (ADR)
 const safetyRoutes = require('./routes/safetyRoutes');         // Week 5: safety system 2.0
+const dashboardRoutes = require('./routes/dashboardRoutes');   // Week 4+: role-separated dashboards
+const completionRoutes = require('./routes/completionRoutes'); // Week 5: finalization + payments + cleanup
 
 const app = express();
 
@@ -51,13 +53,15 @@ app.use('/api/incidents', incidentRoutes);         // Week 5: admin safety dashb
 app.use('/api/fraud', fraudRoutes);                // Week 5: fraud detection system
 app.use('/api/disputes', disputeRoutes);           // Week 5: automated dispute resolution
 app.use('/api/safety', safetyRoutes);              // Week 5: safety system 2.0
+app.use('/api/dashboard', dashboardRoutes);        // Week 4+: role-separated dashboards
+app.use('/api/completion', completionRoutes);      // Week 5: job finalization + payments + cleanup
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
 app.get('/', (_req, res) => {
   res.json({
     service: 'RoadResQ API',
-    version: '5.0.0',
+    version: '6.0.0',
     status: 'running',
     project: 'roadresq-bd6b0',
     region: 'me-central1 (Doha, Qatar)',
@@ -68,6 +72,8 @@ app.get('/', (_req, res) => {
       quotes: '/api/quotes | /api/quotes/my-quotes | /api/quotes/:id/bids | /api/quotes/:id/bid',
       garageRequests: '/api/garage-requests (on-site repair: broadcast → estimate → accept)',
       discipline: '/api/discipline (warnings, compliance, safety checklists, priority queue, admin-review)',
+      dashboard: '/api/dashboard (admin | driver/:id | user/:id | garage/:id)',
+      completion: '/api/completion (/:id/complete | /:id/report | /:id/payment | archive-old | cleanup-files | audit-logs)',
     },
     serviceStructure: {
       '1. Tow': 'Sedan / SUV / 4x4 / Motorcycle / ATV / Others',
