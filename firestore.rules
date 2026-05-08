@@ -155,5 +155,27 @@ service cloud.firestore {
       allow read:   if isAdmin();
       allow write:  if isAdmin();
     }
+
+    // ─── Week 6: Driver Locations (Firestore fallback for RTDB) ──────────────
+    match /driver_locations/{driverId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isOwner(driverId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Week 6: Job Tracking ────────────────────────────────────────────────
+    match /job_tracking/{jobId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Week 6: Health Check ────────────────────────────────────────────────
+    match /_health/{doc} {
+      allow read:   if isSignedIn();
+      allow write:  if isAdmin();
+    }
   }
 }

@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "RoadResQ API v6.0 — Complete",
-    "description": "RoadResQ complete API v6.0.0. Includes: Auth, Jobs, Drivers, Quotes, Garage, Discipline, Safety, Dashboard (role-separated), Completion (finalization, payments, reports, cleanup, audit).",
+    "name": "RoadResQ API v7.0 \u2014 Complete",
+    "description": "RoadResQ API v7.0 \u2014 Week 6: Maps + Integration + Tracking + Stability",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "6.0.0"
   },
@@ -2068,7 +2068,17 @@
           "name": "Admin Dashboard",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/dashboard/admin", "host": ["{{base_url}}"], "path": ["api", "dashboard", "admin"] },
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "admin"
+              ]
+            },
             "description": "Returns: active jobs, incidents, fraud flags, disputes, alerts, pending payments."
           }
         },
@@ -2076,7 +2086,18 @@
           "name": "Driver Dashboard",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/dashboard/driver/{{driverId}}", "host": ["{{base_url}}"], "path": ["api", "dashboard", "driver", "{{driverId}}"] },
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/driver/{{driverId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "driver",
+                "{{driverId}}"
+              ]
+            },
             "description": "Returns: driver profile, active jobs, completed jobs, earnings, warnings."
           }
         },
@@ -2084,7 +2105,18 @@
           "name": "User Dashboard",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/dashboard/user/{{userId}}", "host": ["{{base_url}}"], "path": ["api", "dashboard", "user", "{{userId}}"] },
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/user/{{userId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "user",
+                "{{userId}}"
+              ]
+            },
             "description": "Returns: user profile, active jobs, past jobs, disputes, safety feedback, spending."
           }
         },
@@ -2092,7 +2124,18 @@
           "name": "Garage Dashboard",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/dashboard/garage/{{garageId}}", "host": ["{{base_url}}"], "path": ["api", "dashboard", "garage", "{{garageId}}"] },
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/garage/{{garageId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "garage",
+                "{{garageId}}"
+              ]
+            },
             "description": "Returns: active requests, completed repairs, pending quotes, earnings."
           }
         }
@@ -2106,9 +2149,28 @@
           "name": "Complete/Finalize Job",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/complete", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "complete"] },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"completedBy\": \"driver_001\",\n  \"completedByRole\": \"driver\"\n}" },
+            "url": {
+              "raw": "{{base_url}}/api/completion/{{jobId}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "{{jobId}}",
+                "complete"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completedBy\": \"driver_001\",\n  \"completedByRole\": \"driver\"\n}"
+            },
             "description": "THE MAIN FLOW. Validates job -> checks disputes -> generates report -> releases payment -> soft-deletes files -> marks job completed."
           }
         },
@@ -2116,9 +2178,28 @@
           "name": "Hold Payment (Escrow)",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/hold-payment", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "hold-payment"] },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"amount\": 15000,\n  \"customerId\": \"user_001\",\n  \"driverId\": \"driver_001\"\n}" },
+            "url": {
+              "raw": "{{base_url}}/api/completion/{{jobId}}/hold-payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "{{jobId}}",
+                "hold-payment"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15000,\n  \"customerId\": \"user_001\",\n  \"driverId\": \"driver_001\"\n}"
+            },
             "description": "Holds payment in escrow (amount in halala: 15000 = QR 150.00). Called when driver accepts job."
           }
         },
@@ -2126,7 +2207,18 @@
           "name": "Get Payment Status",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/payment", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "payment"] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/{{jobId}}/payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "{{jobId}}",
+                "payment"
+              ]
+            },
             "description": "Returns payment record: amount, status (pending/held/released/refunded/disputed), timestamps."
           }
         },
@@ -2134,7 +2226,27 @@
           "name": "List All Payments",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/payments?status=held&limit=20", "host": ["{{base_url}}"], "path": ["api", "completion", "payments"], "query": [{ "key": "status", "value": "held" }, { "key": "limit", "value": "20" }] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/payments?status=held&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "held"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
             "description": "List payments. Filter by status, driverId, customerId."
           }
         },
@@ -2142,7 +2254,18 @@
           "name": "Get Job Report",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/report", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "report"] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/{{jobId}}/report",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "{{jobId}}",
+                "report"
+              ]
+            },
             "description": "Returns comprehensive job report: timeline, payment, driver, safety, GPS, photos, disputes."
           }
         },
@@ -2150,7 +2273,23 @@
           "name": "List Reports",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/reports?limit=20", "host": ["{{base_url}}"], "path": ["api", "completion", "reports"], "query": [{ "key": "limit", "value": "20" }] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/reports?limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
             "description": "List reports. Filter by userId or driverId."
           }
         },
@@ -2158,7 +2297,17 @@
           "name": "Archive Old Jobs (30+ days)",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/api/completion/archive-old", "host": ["{{base_url}}"], "path": ["api", "completion", "archive-old"] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/archive-old",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "archive-old"
+              ]
+            },
             "description": "Archives completed jobs older than 30 days. Status: completed -> archived."
           }
         },
@@ -2166,7 +2315,17 @@
           "name": "Process Pending File Deletions",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/api/completion/cleanup-files", "host": ["{{base_url}}"], "path": ["api", "completion", "cleanup-files"] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/cleanup-files",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "cleanup-files"
+              ]
+            },
             "description": "Processes soft-deleted files past 24h grace period. Deletes from Firebase Storage with 3x retry."
           }
         },
@@ -2174,7 +2333,17 @@
           "name": "Check Storage Status",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/storage-status", "host": ["{{base_url}}"], "path": ["api", "completion", "storage-status"] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/storage-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "storage-status"
+              ]
+            },
             "description": "Returns pending deletions count, failed deletions count. Alerts admin if threshold exceeded."
           }
         },
@@ -2182,7 +2351,23 @@
           "name": "Get Audit Logs",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/audit-logs?limit=50", "host": ["{{base_url}}"], "path": ["api", "completion", "audit-logs"], "query": [{ "key": "limit", "value": "50" }] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/audit-logs?limit=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
             "description": "Returns audit log entries. Filter by eventType, entityId, entityType, actorId."
           }
         },
@@ -2190,7 +2375,18 @@
           "name": "Get Entity Audit Trail",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/completion/{{jobId}}/audit-trail", "host": ["{{base_url}}"], "path": ["api", "completion", "{{jobId}}", "audit-trail"] },
+            "url": {
+              "raw": "{{base_url}}/api/completion/{{jobId}}/audit-trail",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "completion",
+                "{{jobId}}",
+                "audit-trail"
+              ]
+            },
             "description": "Returns all audit events for a specific entity (job, driver, user). Ordered chronologically."
           }
         }
@@ -2204,7 +2400,17 @@
           "name": "Get All Checklists",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/safety/checklists", "host": ["{{base_url}}"], "path": ["api", "safety", "checklists"] },
+            "url": {
+              "raw": "{{base_url}}/api/safety/checklists",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "checklists"
+              ]
+            },
             "description": "Returns all available service safety checklists with their items."
           }
         },
@@ -2212,7 +2418,18 @@
           "name": "Get Tow Checklist",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/safety/checklist/tow", "host": ["{{base_url}}"], "path": ["api", "safety", "checklist", "tow"] },
+            "url": {
+              "raw": "{{base_url}}/api/safety/checklist/tow",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "checklist",
+                "tow"
+              ]
+            },
             "description": "Returns tow-specific safety checklist (vehicle mount check)."
           }
         },
@@ -2220,10 +2437,439 @@
           "name": "Submit Service Safety Check (Tow)",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/api/safety/service-check", "host": ["{{base_url}}"], "path": ["api", "safety", "service-check"] },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"jobId\": \"job_001\",\n  \"driverId\": \"driver_001\",\n  \"serviceType\": \"tow\",\n  \"checks\": {\n    \"vehicleLoadedSecurely\": true,\n    \"strapsChainsTightened\": true,\n    \"handbrakeEngaged\": true,\n    \"towHookWinchConnected\": true,\n    \"towedVehicleInNeutral\": true,\n    \"tailLightsReflectors\": true,\n    \"noLooseItems\": true,\n    \"wheelLiftSecured\": true\n  }\n}" },
+            "url": {
+              "raw": "{{base_url}}/api/safety/service-check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "safety",
+                "service-check"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"job_001\",\n  \"driverId\": \"driver_001\",\n  \"serviceType\": \"tow\",\n  \"checks\": {\n    \"vehicleLoadedSecurely\": true,\n    \"strapsChainsTightened\": true,\n    \"handbrakeEngaged\": true,\n    \"towHookWinchConnected\": true,\n    \"towedVehicleInNeutral\": true,\n    \"tailLightsReflectors\": true,\n    \"noLooseItems\": true,\n    \"wheelLiftSecured\": true\n  }\n}"
+            },
             "description": "Driver submits tow mount safety check. ALL items must be true before job can proceed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "GPS Tracking (Week 6)",
+      "item": [
+        {
+          "name": "Push Driver Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"driver_001\",\n  \"lat\": 25.2854,\n  \"lng\": 51.531,\n  \"heading\": 180,\n  \"speed\": 45,\n  \"activeJobId\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/location",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "location"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Find Nearby Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/nearby?lat=25.2854&lng=51.5310&radius=10&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "25.2854"
+                },
+                {
+                  "key": "lng",
+                  "value": "51.5310"
+                },
+                {
+                  "key": "radius",
+                  "value": "10"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Driver Location",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/driver/driver_001",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "driver",
+                "driver_001"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set Driver Offline",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/offline/driver_001",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "offline",
+                "driver_001"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Calculate Route + ETA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/route?originLat=25.2854&originLng=51.5310&destLat=25.3000&destLng=51.5500",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "route"
+              ],
+              "query": [
+                {
+                  "key": "originLat",
+                  "value": "25.2854"
+                },
+                {
+                  "key": "originLng",
+                  "value": "51.5310"
+                },
+                {
+                  "key": "destLat",
+                  "value": "25.3000"
+                },
+                {
+                  "key": "destLng",
+                  "value": "51.5500"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start Job Tracking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"driver_001\",\n  \"pickupLat\": 25.29,\n  \"pickupLng\": 51.54,\n  \"dropoffLat\": 25.27,\n  \"dropoffLng\": 51.52\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/job/JOB_ID/start",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "job",
+                "JOB_ID",
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Job Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/job/JOB_ID",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "job",
+                "JOB_ID"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Job ETA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/job/JOB_ID/eta",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "job",
+                "JOB_ID",
+                "eta"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detect Driver Arrival",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"driver_001\",\n  \"thresholdMeters\": 100\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/tracking/driver-arrived/JOB_ID",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "driver-arrived",
+                "JOB_ID"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integration Testing (Week 6)",
+      "item": [
+        {
+          "name": "System Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test/system-health",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "system-health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payment Validation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test/payment-validation",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "payment-validation"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Service Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test/service-check",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "service-check"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Simulate Full Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/test/full-flow",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "full-flow"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Simulate Driver Tracking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"test_driver\",\n  \"jobId\": \"test_job\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/test/simulate-tracking",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "simulate-tracking"
+              ]
+            }
           }
         }
       ]

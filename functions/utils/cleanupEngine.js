@@ -1,9 +1,16 @@
 /**
- * Cleanup Engine — RoadResQ (Week 5)
+ * Cleanup Engine — RoadResQ (Week 5 + Week 6 PM Integration)
  *
- * Safe file cleanup with retry, soft-delete, and storage monitoring.
+ * Safe file cleanup with retry, soft-delete, storage monitoring,
+ * and direct Firebase Storage upload/delete operations.
  *
- * Features:
+ * Week 6 additions (from PM's cleanup API patterns):
+ * - uploadToStorage: direct buffer upload to Firebase Storage
+ * - uploadPDFToStorage: PDF-specific upload for archive reports
+ * - deleteFromStorageByUrl: URL-parse-and-delete (PM pattern)
+ * - uploadJobPhotos: image processing + upload (HEIC support placeholder)
+ *
+ * Existing Week 5 features preserved:
  * - safeDelete: 3x retry with failure logging
  * - softDeleteFiles: marks files for deletion with 24h grace period
  * - executePendingDeletions: processes soft-deleted files past grace period
@@ -18,6 +25,91 @@ const { logEvent, EVENT_TYPES } = require('./auditEngine');
 const PENDING_COLLECTION = 'pending_deletions';
 const FAILURE_COLLECTION = 'deletion_failures';
 const GRACE_PERIOD_HOURS = 24;
+
+// ─── Firebase Storage Helpers (from PM's storageService.js) ──────────────────
+
+/**
+ * Uploads a Buffer (image, PDF, etc.) directly to Firebase Storage.
+ * Adapted from PM's cleanup API storageService.js pattern.
+ *
+ * @param {string} destination — path in the bucket (e.g. 'jobs/123.jpg')
+ * @param {Buffer} buffer — the file data
+ * @param {string} contentType — 'image/jpeg', 'application/pdf', etc.
+ * @returns {Promise<string>} — public download URL
+ */
+async function uploadToStorage(destination, buffer, contentType) {
+  try {
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(destination);
+
+    await file.save(buffer, {
+      metadata: { contentType },
+      public: true,
+    });
+
+    const encodedPath = encodeURIComponent(destination);
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media`;
+  } catch (error) {
+    console.error('[Cleanup] Firebase Upload Error:', error.message);
+    throw new Error('Failed to upload file to cloud storage.');
+  }
+}
+
+/**
+ * Uploads a PDF buffer to Firebase Storage for the archive/report service.
+ * PM pattern: stores in reports/ folder with jobId + timestamp.
+ *
+ * @param {string} jobId
+ * @param {Buffer} pdfBuffer
+ * @returns {Promise<string>} — download URL
+ */
+async function uploadPDFToStorage(jobId, pdfBuffer) {
+  const fileName = `reports/REPORT-${jobId}-${Date.now()}.pdf`;
+  return await uploadToStorage(fileName, pdfBuffer, 'application/pdf');
+}
+
+/**
+ * Uploads a processed image buffer to Firebase Storage.
+ *
+ * @param {string} jobId
+ * @param {Buffer} imageBuffer
+ * @param {string} originalName
+ * @returns {Promise<string>} — download URL
+ */
+async function uploadJobImage(jobId, imageBuffer, originalName) {
+  const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_').split('.')[0];
+  const fileName = `jobs/${jobId}/${Date.now()}-${safeName}.jpg`;
+  return await uploadToStorage(fileName, imageBuffer, 'image/jpeg');
+}
+
+/**
+ * Deletes a file from Firebase Storage given its public URL.
+ * Follows PM's URL-parse-and-delete pattern from storageService.js.
+ *
+ * @param {string} fileUrl — the full Firebase Storage URL
+ * @returns {Promise<boolean>} — true if deleted, false on failure
+ */
+async function deleteFromStorageByUrl(fileUrl) {
+  if (!fileUrl) return false;
+
+  try {
+    // Extract path from URL: https://.../o/[PATH]?alt=media -> [PATH]
+    const parts = fileUrl.split('/o/');
+    if (parts.length < 2) return false;
+
+    const filePathWithParams = parts[1];
+    const filePath = decodeURIComponent(filePathWithParams.split('?')[0]);
+
+    const bucket = admin.storage().bucket();
+    await bucket.file(filePath).delete();
+
+    console.log(`[Cleanup] Purged from storage: ${filePath}`);
+    return true;
+  } catch (error) {
+    console.error(`[Cleanup] Storage deletion failed for: ${fileUrl}`, error.message);
+    return false;
+  }
+}
 
 // ─── Safe Delete (with 3x Retry) ─────────────────────────────────────────────
 
@@ -34,7 +126,6 @@ async function safeDelete(url, maxRetries = 3) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Extract bucket path from URL
       const filePath = extractStoragePath(url);
       if (!filePath) {
         console.warn(`[Cleanup] Cannot extract storage path from: ${url}`);
@@ -56,43 +147,35 @@ async function safeDelete(url, maxRetries = 3) {
     } catch (err) {
       console.error(`[Cleanup] Delete attempt ${attempt}/${maxRetries} failed for ${url}:`, err.message);
       if (attempt < maxRetries) {
-        // Wait before retry (exponential backoff: 1s, 2s, 4s)
         await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
       }
     }
   }
 
-  // All retries failed — log failure
   await logFailedDeletion(url, 'Max retries exceeded');
   return false;
 }
 
 /**
  * Extracts the storage path from a Firebase Storage URL.
+ * Handles gs://, firebasestorage.googleapis.com, and storage.googleapis.com URLs.
  */
 function extractStoragePath(url) {
   if (!url) return null;
 
-  // Handle gs:// URLs
   if (url.startsWith('gs://')) {
     const parts = url.replace('gs://', '').split('/');
-    parts.shift(); // remove bucket name
+    parts.shift();
     return parts.join('/');
   }
 
-  // Handle https://firebasestorage.googleapis.com URLs
+  // PM pattern: https://firebasestorage.googleapis.com/v0/b/.../o/[PATH]?alt=media
   const match = url.match(/\/o\/(.+?)(\?|$)/);
-  if (match) {
-    return decodeURIComponent(match[1]);
-  }
+  if (match) return decodeURIComponent(match[1]);
 
-  // Handle https://storage.googleapis.com URLs
   const match2 = url.match(/storage\.googleapis\.com\/[^/]+\/(.+?)(\?|$)/);
-  if (match2) {
-    return decodeURIComponent(match2[1]);
-  }
+  if (match2) return decodeURIComponent(match2[1]);
 
-  // Assume it's already a path
   return url;
 }
 
@@ -214,6 +297,8 @@ function collectJobFileUrls(job) {
   if (job.arrivalPhotoUrl) urls.push(job.arrivalPhotoUrl);
   if (job.customPhotoUrls) urls.push(...job.customPhotoUrls.filter(Boolean));
   if (job.logisticsPhotoUrls) urls.push(...job.logisticsPhotoUrls.filter(Boolean));
+  // PM pattern: also check 'photos' array
+  if (job.photos && Array.isArray(job.photos)) urls.push(...job.photos.filter(Boolean));
   return urls;
 }
 
@@ -235,7 +320,6 @@ async function checkStorageUsage() {
     checkedAt: new Date().toISOString(),
   };
 
-  // Alert if too many failures
   if (failedSnap.size > 50) {
     await db.collection('admin_alerts').add({
       type: 'STORAGE_ALERT',
@@ -257,6 +341,10 @@ async function checkStorageUsage() {
 }
 
 module.exports = {
+  // Week 5 originals
   safeDelete, softDeleteFiles, executePendingDeletions,
   collectJobFileUrls, checkStorageUsage, logFailedDeletion,
+  // Week 6 PM integration
+  uploadToStorage, uploadPDFToStorage, uploadJobImage,
+  deleteFromStorageByUrl, extractStoragePath,
 };
