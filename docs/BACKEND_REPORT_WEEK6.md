@@ -1,151 +1,302 @@
-# RoadResQ Backend Report - Week 6
+# RoadResQ — Week 6 Backend Report (Improved v8.0.0)
+**Version:** v8.0.0 | **Deployed:** Firebase Cloud Functions | **Region:** me-central1 (Doha, Qatar)
+**Date Completed:** 2026-05-17 | Firebase: Deployed | GitHub: Pushed | Postman: Updated
 
-## Summary
-Week 6 connects all systems together with live GPS tracking, Google Maps backend integration, real-time driver monitoring, system integration testing, and PM cleanup API integration.
+---
+
+## Live Links
+
+| Resource | URL |
+|---|---|
+| **Live API** | https://api-h6acdw3itq-ww.a.run.app |
+| **Firebase Console** | https://console.firebase.google.com/project/roadresq-bd6b0/overview |
+| **GitHub Branch** | https://github.com/Rover-dotcom/RoadResQ/tree/backend-dev |
+| **Postman Collection** | `docs/RoadResQ_API.postman_collection.json` |
+
+---
+
+## Completion Checklist
+
+| Task | Status |
+|---|---|
+| Google Maps integration with automatic Haversine fallback | Done |
+| Double-entry wallet system (deposit, debit, hold, release, refund) | Done |
+| Driver payout system with admin approval flow | Done |
+| Real-time dispatch engine with auto-timeout + radius expansion | Done |
+| Route recalculation on driver deviation | Done |
+| Trip progress tracking (percentage-based) | Done |
+| Batch GPS updates with 3-second throttle | Done |
+| Payment receipts with QAR fare breakdown | Done |
+| Stress testing (10 concurrent bookings) | Done |
+| GPS edge case testing (weak signal, basement, drift) | Done |
+| Request ID tracing (X-Request-Id header) | Done |
+| Live GPS tracking via Firebase Realtime Database | Done |
+| Nearby driver search with Haversine formula | Done |
+| Traffic-adjusted ETA (Qatar peak-hour buffers) | Done |
+| Driver arrival auto-detection (< 100m threshold) | Done |
+| Rate limiting (100 req/min per IP) | Done |
+| Postman collection updated to v8.0.0 | Done |
+| Firestore indexes for wallet/payout/dispatch | Done |
+| Firestore security rules for 4 new collections | Done |
+
+---
 
 ## Key Highlights
-- Live GPS tracking via Firebase Realtime Database (backend/utils/locationEngine.js)
-- Nearby driver search uses Haversine formula with 10km default radius (backend/utils/locationEngine.js)
-- Traffic-adjusted ETA with Qatar peak-hour buffers: 07-09, 12-13, 17-20 (backend/utils/locationEngine.js)
-- Driver arrival auto-detection at < 100m threshold, auto-updates job status (backend/utils/locationEngine.js)
-- Route distance calculation with 1.3x road factor for realistic estimates (backend/utils/locationEngine.js)
-- PM cleanup API patterns integrated into existing cleanup engine (backend/utils/cleanupEngine.js)
-- System health monitoring checks Firestore, jobs, drivers, payments, cleanup (backend/controllers/integrationController.js)
-- Payment validation detects stuck, orphaned, and duplicate payments (backend/controllers/integrationController.js)
-- Full booking-to-payout flow simulation for QA (backend/controllers/integrationController.js)
-- Rate limiting: 100 requests per minute per IP (backend/server.js)
-- Response time tracking via X-Response-Time header (backend/server.js)
 
-## Completed Tasks
+- Google Maps integration auto-detects API key availability — uses Distance Matrix API in production, Haversine fallback in development (`backend/utils/mapsEngine.js`)
+- Wallet system uses Firestore Transactions for atomic double-entry ledger operations (`backend/utils/walletEngine.js`)
+- Driver payouts require QR 50 minimum and enforce 24-hour cooldown between requests (`backend/utils/payoutEngine.js`)
+- Dispatch engine offers jobs to nearest driver first, auto-escalates radius (10km -> 15km -> 20km) on timeouts (`backend/utils/dispatchEngine.js`)
+- Route recalculation triggers when driver GPS deviates more than 500m from planned route (`backend/utils/locationEngine.js`)
+- Trip progress calculates percentage completion based on remaining distance vs total distance (`backend/utils/locationEngine.js`)
+- GPS batch updates throttle to 1 write per 3 seconds to reduce Firestore/RTDB costs (`backend/utils/locationEngine.js`)
+- Payment receipt includes full fare breakdown: base fare, distance fare, surge fare, platform fee (10%), driver payout (`backend/utils/paymentEngine.js`)
+- Maps API responses are cached with 5-minute TTL to reduce Google API calls (`backend/utils/mapsEngine.js`)
+- Every HTTP request gets a UUID (X-Request-Id header) for end-to-end debugging (`backend/server.js`)
 
-### 1. Google Maps Backend Integration
-- POST /api/tracking/location - driver sends GPS every 5-10 seconds (backend/controllers/trackingController.js)
-- GET /api/tracking/nearby - find drivers within radius of a coordinate (backend/controllers/trackingController.js)
-- GET /api/tracking/route - calculate distance + ETA between two points (backend/controllers/trackingController.js)
-- GET /api/tracking/job/:jobId/eta - get current ETA for an active job (backend/controllers/trackingController.js)
-- ETA uses Haversine distance with 1.3x road factor and Qatar peak-hour traffic buffer (+25%)
+---
 
-### 2. Driver Live Location System
-- Location stored in Firebase Realtime Database at /locations/{driverId} (backend/utils/locationEngine.js)
-- Data structure: lat, lng, heading, speed, updatedAt, isOnline
-- Firestore fallback if RTDB is not available
-- Firebase RTDB chosen over Firestore for sub-second latency on high-frequency GPS writes
+## New Files
 
-### 3. Real-Time Tracking
-- Firebase Realtime Database structure: /locations/{driverId} and /job_tracking/{jobId} (backend/utils/locationEngine.js)
-- Flutter frontend listens to /locations/{driverId} for real-time marker updates
-- Job tracking stores: driver position, pickup/dropoff coordinates, ETA, distance, status
+### New Engines (`backend/utils/`)
+| File | What It Does |
+|---|---|
+| `mapsEngine.js` | Google Maps Distance Matrix + Directions API wrapper with Haversine fallback, geocoding, reverse geocoding, response caching (5-min TTL) |
+| `walletEngine.js` | Double-entry wallet ledger — DEPOSIT, DEBIT, CREDIT, HOLD, RELEASE, REFUND, WITHDRAWAL operations with Firestore Transactions |
+| `payoutEngine.js` | Driver withdrawal request system — QR 50 min threshold, 24h cooldown, admin approve/reject state machine |
+| `dispatchEngine.js` | Automated job dispatch — finds nearby drivers, sends offers, handles accept/decline/timeout, radius expansion (10/15/20 km) |
 
-### 4. Nearby Driver Detection
-- Haversine formula for accurate geo-filtering (backend/utils/locationEngine.js)
-- Default 10km radius, configurable via API query parameter
-- Results sorted by distance ascending
-- Maximum 20 results per query
+### New Controllers (`backend/controllers/`)
+| File | What It Does |
+|---|---|
+| `walletController.js` | 5 wallet endpoints: get balance, transactions, deposit, withdraw, list all |
+| `payoutController.js` | 5 payout endpoints: request, pending list, approve, reject, driver history |
+| `dispatchController.js` | 5 dispatch endpoints: start dispatch, accept, decline, cancel, get status |
+| `mapsController.js` | 6 maps endpoints: route, distance matrix, geocode, reverse geocode, polyline, status |
 
-### 5. Route + ETA Engine
-- Haversine straight-line distance with 1.3x road factor multiplier (backend/utils/locationEngine.js)
-- Qatar peak hours: 07-09, 12-13, 17-20 (UTC+3)
-- Traffic multiplier: 1.25x during peak hours
-- Average city speed: 40 km/h base, 32 km/h during peak
+### New Routes (`backend/routes/`)
+| File | Base Path |
+|---|---|
+| `walletRoutes.js` | `/api/wallet` |
+| `payoutRoutes.js` | `/api/payouts` |
+| `dispatchRoutes.js` | `/api/dispatch` |
+| `mapsRoutes.js` | `/api/maps` |
 
-### 6. Job Tracking System
-- Start tracking: POST /api/tracking/job/:jobId/start (backend/controllers/trackingController.js)
-- Live tracking: GET /api/tracking/job/:jobId (backend/controllers/trackingController.js)
-- ETA updates: GET /api/tracking/job/:jobId/eta (backend/controllers/trackingController.js)
-- Status flow: assigned -> en_route -> arrived -> in_progress -> completed
+### Modified Files
+| File | What Changed |
+|---|---|
+| `backend/server.js` | v8.0.0 — 4 new route groups (wallet, payouts, dispatch, maps), request ID middleware, updated health check |
+| `backend/utils/paymentEngine.js` | Added `getPaymentReceipt()` for fare breakdown and `releasePaymentWithWallet()` for wallet-integrated payment release |
+| `backend/utils/locationEngine.js` | Added `recalculateRoute()`, `getTripProgress()`, `setDriverOnline()`, `batchUpdateLocations()`, `getRoutePolyline()` |
+| `backend/controllers/trackingController.js` | 5 new endpoints: recalculate route, trip progress, polyline, go online, batch GPS update |
+| `backend/controllers/integrationController.js` | 5 new test endpoints: test all services, wallet validation, GPS edge cases, stress test, route recalculation test |
+| `backend/routes/trackingRoutes.js` | 5 new routes for recalculation, progress, polyline, online toggle, batch update |
+| `backend/routes/integrationRoutes.js` | 5 new test routes |
+| `functions/index.js` | v8.0.0 — synced all new routes, added request ID middleware |
+| `firestore.rules` | 4 new collection rules: wallets, wallet_transactions, payouts, dispatch_state |
+| `firestore.indexes.json` | 4 new composite indexes for wallet_transactions, payouts, wallets |
+| `docs/RoadResQ_API.postman_collection.json` | 5 new Postman folders: Wallet, Payouts, Dispatch, Maps, Integration Tests v8.0.0 |
 
-### 7. Driver Arrival Detection
-- POST /api/tracking/driver-arrived/:jobId (backend/controllers/trackingController.js)
-- Checks if driver GPS is within 100m of pickup coordinates
-- Auto-updates job status to "arrived" in both RTDB and Firestore
-- Logs DRIVER_ARRIVED event to audit trail
+---
 
-### 8. Full System Integration Testing
-- GET /api/test/system-health - checks Firestore, collections, active jobs, drivers, payments, cleanup (backend/controllers/integrationController.js)
-- GET /api/test/payment-validation - finds stuck (>48h), orphaned, duplicate payments (backend/controllers/integrationController.js)
-- GET /api/test/service-check - validates all 6 service types are configured (backend/controllers/integrationController.js)
-- POST /api/test/full-flow - simulates 10-step booking-to-payout flow (backend/controllers/integrationController.js)
-- POST /api/test/simulate-tracking - simulates GPS route in Doha (backend/controllers/integrationController.js)
+## Wallet System (`backend/utils/walletEngine.js`)
 
-### 9. Payment Flow Validation
-- Detects payments held for more than 48 hours (stuck)
-- Detects payments referencing non-existent jobs (orphaned)
-- Detects multiple payments on the same job (duplicates)
-- Reports issues with severity levels (warning vs error)
+Each user, driver, and garage gets a wallet with two balances: `availableBalance` (spendable) and `heldBalance` (locked for pending jobs). All operations are atomic using Firestore Transactions to prevent race conditions.
 
-### 10. API Cleanup + Optimization
-- Rate limiting: 100 requests/minute per IP (backend/server.js)
-- Response time header: X-Response-Time (backend/server.js)
-- PM's Firebase Storage upload/delete patterns integrated into cleanup engine (backend/utils/cleanupEngine.js)
-- uploadToStorage, uploadPDFToStorage, uploadJobImage, deleteFromStorageByUrl added
-
-### 11. PM Cleanup API Integration
-- PM's cleanup API from web/Cleanup moved to docs/reference/cleanup-api as reference
-- Storage upload/delete patterns from PM's storageService.js integrated into our cleanupEngine.js
-- URL-parse-and-delete pattern (deleteFromStorageByUrl) for Firebase Storage URLs
-- PDF upload helper (uploadPDFToStorage) for report archival
-- Image upload helper (uploadJobImage) for job photos
-
-## API Endpoints Added (14)
-- POST /api/tracking/location
-- GET /api/tracking/nearby
-- GET /api/tracking/driver/:driverId
-- POST /api/tracking/offline/:driverId
-- GET /api/tracking/route
-- POST /api/tracking/job/:jobId/start
-- GET /api/tracking/job/:jobId
-- GET /api/tracking/job/:jobId/eta
-- POST /api/tracking/driver-arrived/:jobId
-- GET /api/test/system-health
-- GET /api/test/payment-validation
-- GET /api/test/service-check
-- POST /api/test/full-flow
-- POST /api/test/simulate-tracking
-
-## Files Added
-- backend/utils/locationEngine.js (location engine with RTDB, Haversine, ETA, arrival detection)
-- backend/controllers/trackingController.js (9 tracking endpoints)
-- backend/routes/trackingRoutes.js (tracking route definitions)
-- backend/controllers/integrationController.js (5 integration test endpoints)
-- backend/routes/integrationRoutes.js (integration route definitions)
-- docs/BACKEND_REPORT_WEEK5.md (Week 5 report)
-- docs/BACKEND_REPORT_WEEK6.md (this file)
-
-## Files Modified
-- backend/server.js (v7.0.0 — tracking routes, integration routes, rate limiting, response time header)
-- backend/utils/cleanupEngine.js (PM storage patterns: uploadToStorage, deleteFromStorageByUrl, uploadPDFToStorage, uploadJobImage)
-- backend/utils/auditEngine.js (4 new event types: DRIVER_ARRIVED, TRACKING_STARTED, LOCATION_UPDATE, SYSTEM_TEST)
-- functions/index.js (v7.0.0 — tracking and integration route registration)
-- api/RoadResQ_API_v4_Complete.postman_collection.json (v7.0 — 2 new folders, 14 new requests)
-
-## Files Moved
-- web/Cleanup -> docs/reference/cleanup-api (PM's reference cleanup API)
-
-## Firebase Realtime Database Structure
+**Supported operations:**
 ```
-/locations/{driverId}
-  lat: 25.2854
-  lng: 51.5310
-  heading: 180
-  speed: 45
-  updatedAt: 1716000000000
-  isOnline: true
-
-/job_tracking/{jobId}
-  driverId: "driver_001"
-  status: "assigned"
-  pickupLat: 25.2900
-  pickupLng: 51.5400
-  dropoffLat: 25.2700
-  dropoffLng: 51.5200
-  etaMinutes: 12
-  distanceKm: 5.2
-  lastUpdate: 1716000000000
+DEPOSIT    — add funds to available balance (e.g., customer tops up)
+DEBIT      — subtract from available balance (e.g., platform fee)
+CREDIT     — add to available balance (e.g., driver earnings)
+HOLD       — move from available to held (e.g., job escrow)
+RELEASE    — move from held to available (e.g., job cancelled, refund hold)
+REFUND     — add back to available balance (e.g., dispute resolution)
+WITHDRAWAL — subtract from available balance (e.g., driver cashes out)
 ```
 
-## Deployment
-- Firebase Cloud Function: v7.0.0, me-central1
-- Firestore rules deployed
-- Firestore indexes deployed
-- Postman collection updated to v7.0
-- GitHub: backend-dev branch
+**Firestore collections:**
+- `wallets/{userId}` — balance document (availableBalance, heldBalance, totalEarned, totalSpent, currency: QAR)
+- `wallet_transactions/{txnId}` — immutable ledger entry (walletId, type, amount, balanceBefore, balanceAfter, reference, timestamp)
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `GET /api/wallet/:userId` | Get wallet balance and metadata |
+| `GET /api/wallet/:userId/transactions` | Get transaction history (limit 50) |
+| `POST /api/wallet/:userId/deposit` | Deposit funds (amount in fils) |
+| `POST /api/wallet/:userId/withdraw` | Withdraw from available balance |
+| `GET /api/wallet/all` | Admin: list all wallets |
+
+---
+
+## Driver Payout System (`backend/utils/payoutEngine.js`)
+
+Drivers can request withdrawal of their earnings. The system enforces a minimum amount (QR 50 = 5000 fils) and a 24-hour cooldown between requests. Admin must approve or reject each request.
+
+**Payout state machine:**
+```
+pending -> approved -> completed
+pending -> rejected
+```
+
+**Business rules:**
+- Minimum withdrawal: QR 50 (5000 fils)
+- Cooldown: 24 hours between requests
+- Available balance must cover the requested amount
+- Admin provides transaction reference on approval
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `POST /api/payouts/request` | Driver submits withdrawal request |
+| `GET /api/payouts/pending` | Admin: list pending payout requests |
+| `POST /api/payouts/:id/approve` | Admin approves — deducts from wallet, marks completed |
+| `POST /api/payouts/:id/reject` | Admin rejects with reason |
+| `GET /api/payouts/driver/:driverId` | Get all payouts for a driver |
+
+---
+
+## Dispatch Engine (`backend/utils/dispatchEngine.js`)
+
+Automated job dispatch that finds nearby drivers, sends offers, and handles timeouts. If the first driver doesn't respond, the system expands the search radius and offers to the next closest driver.
+
+**Dispatch state machine:**
+```
+searching -> offered -> accepted
+searching -> offered -> declined -> searching (next driver)
+searching -> offered -> timeout  -> searching (expand radius)
+searching -> no_drivers_found
+```
+
+**Radius expansion:**
+```
+Round 1: 10 km radius
+Round 2: 15 km radius
+Round 3: 20 km radius
+After 3 rounds: no_drivers_found
+```
+
+**Offer timeout:** 60 seconds per driver
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `POST /api/dispatch/:jobId` | Start dispatch — find drivers, send first offer |
+| `POST /api/dispatch/:jobId/accept` | Driver accepts the offer |
+| `POST /api/dispatch/:jobId/decline` | Driver declines — auto-offers next driver |
+| `POST /api/dispatch/:jobId/cancel` | Cancel dispatch entirely |
+| `GET /api/dispatch/:jobId/status` | Get current dispatch state |
+
+---
+
+## Google Maps Integration (`backend/utils/mapsEngine.js`)
+
+The maps engine auto-detects whether `GOOGLE_MAPS_API_KEY` is set. If available, it uses the real Google API. Otherwise, it uses Haversine-based calculations as a fallback. All responses are cached for 5 minutes.
+
+**Available methods:**
+
+| Function | Google API | Haversine Fallback |
+|---|---|---|
+| `getRoute(origin, dest)` | Distance Matrix API | Haversine * 1.3x road factor |
+| `getDistanceMatrix(origins, dests)` | Distance Matrix API | Haversine per pair |
+| `geocode(address)` | Geocoding API | Returns null (not available offline) |
+| `reverseGeocode(lat, lng)` | Geocoding API | Returns approximate area name |
+| `getPolyline(origin, dest)` | Directions API | Straight-line 2 points |
+
+**Endpoints:**
+
+| Endpoint | What It Does |
+|---|---|
+| `GET /api/maps/route` | Get route with distance/ETA between two points |
+| `POST /api/maps/distance-matrix` | Calculate distances between multiple origin-destination pairs |
+| `GET /api/maps/geocode` | Convert address to coordinates |
+| `GET /api/maps/reverse-geocode` | Convert coordinates to address |
+| `GET /api/maps/polyline` | Get route polyline for map drawing |
+| `GET /api/maps/status` | Check Google Maps API status (live/fallback) |
+
+---
+
+## Upgraded Tracking (`backend/controllers/trackingController.js`)
+
+5 new tracking endpoints added to the existing tracking system.
+
+| Endpoint | What It Does |
+|---|---|
+| `POST /api/tracking/recalculate/:jobId` | Recalculates route when driver deviates from planned path |
+| `GET /api/tracking/progress/:jobId` | Returns trip completion percentage based on remaining vs total distance |
+| `GET /api/tracking/polyline` | Returns route polyline for Flutter map rendering |
+| `POST /api/tracking/driver/:driverId/online` | Sets driver to online (adds to available pool) |
+| `POST /api/tracking/batch-update` | Accepts multiple GPS updates in a single request (3-sec throttle) |
+
+---
+
+## Upgraded Integration Tests (`backend/controllers/integrationController.js`)
+
+5 new test endpoints for comprehensive validation.
+
+| Endpoint | What It Does |
+|---|---|
+| `POST /api/test/test-all-services` | Creates test job for each of the 6 service types, validates pricing and matching |
+| `GET /api/test/wallet-validation` | Checks all wallet balances are non-negative, counts transactions per wallet |
+| `GET /api/test/gps-edge-cases` | Tests 6 GPS scenarios: normal, weak signal, basement, teleportation, connection lost, rapid updates |
+| `POST /api/test/stress-test` | Simulates 10 concurrent bookings (create + delete) — measures throughput and avg response time |
+| `GET /api/test/route-recalculation` | Tests route recalculation with real Doha coordinates (The Pearl to Lusail with a deviation) |
+
+---
+
+## Payment Receipt (`backend/utils/paymentEngine.js`)
+
+New `getPaymentReceipt(jobId)` function generates a formatted receipt:
+
+```
+Receipt ID:     RRQ-ABC12345
+Service:        towing
+Currency:       QAR
+Base Fare:      QR 50.00
+Distance Fare:  QR 15.00
+Surge Fare:     QR 0.00
+Total Charged:  QR 65.00
+Platform Fee:   QR 6.50 (10%)
+Driver Payout:  QR 58.50
+```
+
+---
+
+## Firestore Changes
+
+**New Security Rules** in `firestore.rules`:
+- `wallets/{userId}` — owner or admin can read, admin SDK handles writes
+- `wallet_transactions/{txnId}` — signed-in users can read, admin SDK only writes
+- `payouts/{payoutId}` — signed-in users can read, drivers can create, admin approves/rejects
+- `dispatch_state/{jobId}` — signed-in users can read/update (driver accepts/declines)
+
+**New Composite Indexes** in `firestore.indexes.json`:
+- `wallet_transactions` — (walletId ASC, createdAt DESC) for transaction history queries
+- `payouts` — (driverId ASC, requestedAt DESC) for driver payout history
+- `payouts` — (status ASC, requestedAt ASC) for admin pending queue
+- `wallets` — (role ASC, updatedAt DESC) for admin wallet list
+
+---
+
+## Firebase Status
+
+| Item | Status |
+|---|---|
+| Cloud Functions v8.0.0 (me-central1) | Deployed |
+| Firestore Security Rules (4 new collections) | Deployed |
+| Firestore Indexes (4 new composite) | Deployed |
+| Firebase Auth — Email/Password | Enabled |
+| Firebase Auth — Google Sign-In | Enabled |
+| Firebase Realtime Database | Used for `/locations` and `/job_tracking` |
+
+**Production URL:** `https://api-h6acdw3itq-ww.a.run.app`
+
+---
+
+## GitHub
+
+**Branch:** `backend-dev`
+**Repo:** https://github.com/Rover-dotcom/RoadResQ

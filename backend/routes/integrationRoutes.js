@@ -1,5 +1,5 @@
 /**
- * Integration Routes — RoadResQ (Week 6)
+ * Integration Routes — RoadResQ (Week 6 v8.0.0)
  *
  * System testing and validation endpoints.
  */
@@ -24,4 +24,12 @@ router.post('/full-flow', verifyToken, ctrl.simulateFullFlow);
 // Tracking simulation (dev/testing)
 router.post('/simulate-tracking', verifyToken, ctrl.simulateTracking);
 
+// Week 6 v8.0.0 — new test endpoints
+router.post('/test-all-services', verifyToken, ctrl.testAllServices);
+router.get('/wallet-validation', verifyToken, ctrl.walletValidation);
+router.get('/gps-edge-cases', ctrl.gpsEdgeCases);
+router.post('/stress-test', verifyToken, ctrl.stressTest);
+router.get('/route-recalculation', ctrl.testRouteRecalculation);
+
 module.exports = router;
+

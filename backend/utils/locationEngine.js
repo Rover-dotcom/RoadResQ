@@ -408,6 +408,195 @@ async function clearJobTracking(jobId) {
   }
 }
 
+// ─── Route Recalculation (Week 6 v8.0.0) ────────────────────────────────────
+
+/**
+ * Recalculate ETA when driver deviates from original route.
+ * Uses mapsEngine if available, otherwise Haversine fallback.
+ *
+ * @param {string} jobId
+ * @param {number} driverLat — current driver lat
+ * @param {number} driverLng — current driver lng
+ * @returns {Promise<object>} — new ETA + distance info
+ */
+async function recalculateRoute(jobId, driverLat, driverLng) {
+  const tracking = await getJobTracking(jobId);
+  if (!tracking) throw new Error('No tracking data for this job');
+
+  const destLat = tracking.dropoffLat || tracking.pickupLat;
+  const destLng = tracking.dropoffLng || tracking.pickupLng;
+
+  let routeData;
+  try {
+    const mapsEngine = require('./mapsEngine');
+    routeData = await mapsEngine.getRoute(
+      { lat: driverLat, lng: driverLng },
+      { lat: destLat, lng: destLng }
+    );
+  } catch (_) {
+    // Fallback to Haversine
+    const distance = haversineDistanceKm(driverLat, driverLng, destLat, destLng);
+    const eta = calculateETA(distance);
+    routeData = {
+      distanceKm: Math.round(distance * 1.3 * 100) / 100,
+      durationMinutes: eta.etaMinutes,
+      method: 'haversine_fallback',
+    };
+  }
+
+  // Update tracking with new ETA
+  const now = new Date().toISOString();
+  if (rtdb) {
+    await rtdb.ref(`${JOB_TRACKING_REF}/${jobId}`).update({
+      currentEtaMinutes: routeData.durationMinutes,
+      currentDistanceKm: routeData.distanceKm,
+      routeRecalculatedAt: now,
+      recalculationMethod: routeData.method,
+    });
+  } else {
+    await db.collection('job_tracking').doc(jobId).update({
+      currentEtaMinutes: routeData.durationMinutes,
+      currentDistanceKm: routeData.distanceKm,
+      routeRecalculatedAt: now,
+      recalculationMethod: routeData.method,
+    });
+  }
+
+  return {
+    jobId,
+    newEtaMinutes: routeData.durationMinutes,
+    newDistanceKm: routeData.distanceKm,
+    driverLocation: { lat: driverLat, lng: driverLng },
+    destination: { lat: destLat, lng: destLng },
+    method: routeData.method,
+    recalculatedAt: now,
+  };
+}
+
+/**
+ * Get percentage-based trip completion.
+ *
+ * @param {string} jobId
+ * @returns {Promise<object>} — { progressPercent, distanceCovered, distanceRemaining, ... }
+ */
+async function getTripProgress(jobId) {
+  const tracking = await getJobTracking(jobId);
+  if (!tracking) return null;
+
+  const driverLoc = await getDriverLocation(tracking.driverId);
+  if (!driverLoc) return { jobId, progressPercent: 0, message: 'Driver location unavailable' };
+
+  const pickupLat = tracking.pickupLat;
+  const pickupLng = tracking.pickupLng;
+  const dropoffLat = tracking.dropoffLat || pickupLat;
+  const dropoffLng = tracking.dropoffLng || pickupLng;
+
+  const totalDistance = haversineDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
+  const remainingDistance = haversineDistanceKm(driverLoc.lat, driverLoc.lng, dropoffLat, dropoffLng);
+  const coveredDistance = Math.max(0, totalDistance - remainingDistance);
+
+  let progressPercent = totalDistance > 0 ? Math.min(100, Math.round((coveredDistance / totalDistance) * 100)) : 0;
+
+  // If the driver is within arrival threshold of destination, snap to 100%
+  if (kmToMeters(remainingDistance) < ARRIVAL_THRESHOLD_METERS) {
+    progressPercent = 100;
+  }
+
+  return {
+    jobId,
+    progressPercent,
+    totalDistanceKm: Math.round(totalDistance * 100) / 100,
+    coveredDistanceKm: Math.round(coveredDistance * 100) / 100,
+    remainingDistanceKm: Math.round(remainingDistance * 100) / 100,
+    driverLocation: { lat: driverLoc.lat, lng: driverLoc.lng },
+    destination: { lat: dropoffLat, lng: dropoffLng },
+    trackingStatus: tracking.status,
+    currentEtaMinutes: tracking.currentEtaMinutes || null,
+  };
+}
+
+/**
+ * Get encoded polyline for map drawing.
+ */
+async function getRoutePolyline(origin, destination) {
+  try {
+    const mapsEngine = require('./mapsEngine');
+    return await mapsEngine.getPolyline(origin, destination);
+  } catch (_) {
+    return {
+      polyline: null,
+      distanceKm: haversineDistanceKm(origin.lat, origin.lng, destination.lat, destination.lng) * 1.3,
+      durationMinutes: calculateETA(haversineDistanceKm(origin.lat, origin.lng, destination.lat, destination.lng) * 1.3).etaMinutes,
+      method: 'haversine_fallback',
+      message: 'Polyline unavailable without Google Maps API key',
+    };
+  }
+}
+
+/**
+ * Set driver online (opposite of setDriverOffline).
+ */
+async function setDriverOnline(driverId) {
+  if (rtdb) {
+    await rtdb.ref(`${LOCATIONS_REF}/${driverId}`).update({
+      isOnline: true,
+      isAvailable: true,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  await db.collection('drivers').doc(driverId).update({
+    isOnline: true,
+    isAvailable: true,
+    updatedAt: new Date().toISOString(),
+  });
+
+  return { driverId, status: 'online', updatedAt: new Date().toISOString() };
+}
+
+// ─── GPS Throttle (max 1 update per 3 seconds per driver) ────────────────────
+
+const lastUpdateTimestamp = new Map();
+const GPS_THROTTLE_MS = 3000;
+
+/**
+ * Batch update driver locations with throttle enforcement.
+ *
+ * @param {Array<{driverId, lat, lng, heading, speed}>} updates
+ * @returns {Promise<{processed, throttled, errors}>}
+ */
+async function batchUpdateLocations(updates) {
+  const results = { processed: 0, throttled: 0, errors: 0 };
+
+  for (const update of updates) {
+    const { driverId, lat, lng, heading, speed } = update;
+
+    // Check throttle
+    const lastUpdate = lastUpdateTimestamp.get(driverId);
+    if (lastUpdate && (Date.now() - lastUpdate) < GPS_THROTTLE_MS) {
+      results.throttled++;
+      continue;
+    }
+
+    try {
+      await updateDriverLocation(driverId, lat, lng, heading || 0, speed || 0);
+      lastUpdateTimestamp.set(driverId, Date.now());
+      results.processed++;
+    } catch (err) {
+      console.warn(`[Location] Batch update failed for ${driverId}:`, err.message);
+      results.errors++;
+    }
+  }
+
+  // Clean old throttle entries (> 60 seconds old)
+  const cutoff = Date.now() - 60000;
+  for (const [key, ts] of lastUpdateTimestamp) {
+    if (ts < cutoff) lastUpdateTimestamp.delete(key);
+  }
+
+  return results;
+}
+
 module.exports = {
   // Geo utils
   haversineDistanceKm,
@@ -420,6 +609,7 @@ module.exports = {
   updateDriverLocation,
   getDriverLocation,
   setDriverOffline,
+  setDriverOnline,
 
   // Nearby search
   findNearbyDrivers,
@@ -433,4 +623,12 @@ module.exports = {
 
   // Arrival detection
   checkDriverArrival,
+
+  // Route recalculation (Week 6 v8.0.0)
+  recalculateRoute,
+  getTripProgress,
+  getRoutePolyline,
+
+  // Batch updates (Week 6 v8.0.0)
+  batchUpdateLocations,
 };

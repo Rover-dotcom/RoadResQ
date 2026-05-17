@@ -1,5 +1,5 @@
 /**
- * RoadResQ — Express Server v7.0.0 (Week 6: Maps + Integration + Tracking)
+ * RoadResQ — Express Server v8.0.0 (Week 6: Complete + Improved)
  *
  * Runs locally (node server.js) or is deployed as a Firebase Cloud Function
  * via functions/index.js.
@@ -11,6 +11,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { v4: uuidv4 } = require('uuid');
 
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
@@ -26,6 +27,10 @@ const dashboardRoutes = require('./routes/dashboardRoutes');       // Week 4+: r
 const completionRoutes = require('./routes/completionRoutes');     // Week 5: finalization + payments + cleanup
 const trackingRoutes = require('./routes/trackingRoutes');         // Week 6: GPS tracking + live location
 const integrationRoutes = require('./routes/integrationRoutes');   // Week 6: system integration testing
+const walletRoutes = require('./routes/walletRoutes');             // Week 6 v8: wallet system
+const payoutRoutes = require('./routes/payoutRoutes');             // Week 6 v8: driver payouts
+const dispatchRoutes = require('./routes/dispatchRoutes');         // Week 6 v8: real-time dispatch
+const mapsRoutes = require('./routes/mapsRoutes');                 // Week 6 v8: Google Maps integration
 
 const app = express();
 
@@ -34,6 +39,13 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Request ID middleware (UUID per request for tracing)
+app.use((req, res, next) => {
+  req.requestId = uuidv4();
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
 
 // Response time tracking header
 app.use((req, res, next) => {
@@ -48,7 +60,7 @@ app.use((req, res, next) => {
 // Request logger (dev)
 app.use((req, _res, next) => {
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} [${req.requestId}]`);
   }
   next();
 });
@@ -78,6 +90,7 @@ app.use((req, res, next) => {
     return res.status(429).json({
       status: 'error',
       message: 'Too many requests. Please try again later.',
+      requestId: req.requestId,
     });
   }
   next();
@@ -97,15 +110,19 @@ app.use('/api/disputes', disputeRoutes);
 app.use('/api/safety', safetyRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/completion', completionRoutes);
-app.use('/api/tracking', trackingRoutes);         // Week 6: GPS tracking
-app.use('/api/test', integrationRoutes);          // Week 6: integration testing
+app.use('/api/tracking', trackingRoutes);         // GPS tracking + live location
+app.use('/api/test', integrationRoutes);          // Integration testing
+app.use('/api/wallet', walletRoutes);             // Wallet system
+app.use('/api/payouts', payoutRoutes);            // Driver payouts
+app.use('/api/dispatch', dispatchRoutes);         // Real-time dispatch
+app.use('/api/maps', mapsRoutes);                 // Google Maps integration
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
 app.get('/', (_req, res) => {
   res.json({
     service: 'RoadResQ API',
-    version: '7.0.0',
+    version: '8.0.0',
     status: 'running',
     project: 'roadresq-bd6b0',
     region: 'me-central1 (Doha, Qatar)',
@@ -119,7 +136,11 @@ app.get('/', (_req, res) => {
       dashboard: '/api/dashboard (admin | driver/:id | user/:id | garage/:id)',
       completion: '/api/completion (/:id/complete | /:id/report | /:id/payment | archive-old | cleanup-files | audit-logs)',
       tracking: '/api/tracking (location | nearby | route | driver/:id | job/:jobId | job/:jobId/eta | driver-arrived/:jobId)',
-      integration: '/api/test (system-health | payment-validation | service-check | full-flow | simulate-tracking)',
+      wallet: '/api/wallet (/:userId | /:userId/transactions | /:userId/deposit | /:userId/withdraw | /all)',
+      payouts: '/api/payouts (/request | /pending | /:id/approve | /:id/reject | /driver/:driverId)',
+      dispatch: '/api/dispatch (/:jobId | /:jobId/accept | /:jobId/decline | /:jobId/cancel | /:jobId/status)',
+      maps: '/api/maps (/route | /distance-matrix | /geocode | /reverse-geocode | /polyline | /status)',
+      integration: '/api/test (system-health | payment-validation | service-check | full-flow | simulate-tracking | test-all-services | wallet-validation | gps-edge-cases | stress-test | route-recalculation)',
     },
     serviceStructure: {
       '1. Tow': 'Sedan / SUV / 4x4 / Motorcycle / ATV / Others',
@@ -128,39 +149,45 @@ app.get('/', (_req, res) => {
       '4. Quote Industrial': 'Precast / Pallets / Container / Generator / Others',
       '5. Onsite Repair': 'Customer requests -> broadcast to nearby garages -> estimate bidding',
     },
-    week6Features: [
+    v8Features: [
+      'Google Maps integration with automatic Haversine fallback',
+      'Wallet system with full double-entry ledger',
+      'Driver payout system with admin approval flow',
+      'Real-time dispatch engine with auto-timeout',
+      'Route recalculation on driver deviation',
+      'Trip progress tracking (percentage-based)',
+      'Batch GPS updates with 3-second throttle',
+      'Payment receipts with fare breakdown',
+      'Stress testing (10 concurrent bookings)',
+      'GPS edge case testing (weak signal, basement, drift)',
+      'Request ID tracing (X-Request-Id header)',
       'Live GPS tracking via Firebase Realtime Database',
       'Nearby driver search with Haversine formula',
       'Traffic-adjusted ETA (Qatar peak-hour buffers)',
       'Driver arrival auto-detection (< 100m threshold)',
-      'Job tracking state machine (assigned -> en_route -> arrived -> in_progress -> completed)',
-      'Route distance calculation with 1.3x road factor',
-      'PM cleanup API integrated (Firebase Storage upload/delete)',
-      'System health monitoring endpoint',
-      'Payment state machine validation (stuck/orphaned/duplicate detection)',
-      'Full booking-to-payout flow simulation',
       'Rate limiting (100 req/min per IP)',
-      'Response time tracking header',
     ],
   });
 });
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 
-app.use((_req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     status: 'error',
     message: 'Route not found. Check GET / for all available endpoints.',
+    requestId: req.requestId,
   });
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 
-app.use((err, _req, res, _next) => {
-  console.error('Unhandled error:', err);
+app.use((err, req, res, _next) => {
+  console.error(`[${req.requestId}] Unhandled error:`, err);
   res.status(500).json({
     status: 'error',
     message: 'Internal server error.',
+    requestId: req.requestId,
     ...(process.env.NODE_ENV !== 'production' && { detail: err.message }),
   });
 });
@@ -170,13 +197,15 @@ app.use((err, _req, res, _next) => {
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\nRoadResQ API v7.0.0 — Week 6 Complete running on http://0.0.0.0:${PORT}`);
+    console.log(`\nRoadResQ API v8.0.0 — Week 6 Complete + Improved running on http://0.0.0.0:${PORT}`);
     console.log(`   Health check:       http://0.0.0.0:${PORT}/`);
     console.log(`   Tracking:           http://0.0.0.0:${PORT}/api/tracking`);
-    console.log(`   Nearby drivers:     http://0.0.0.0:${PORT}/api/tracking/nearby`);
-    console.log(`   Job tracking:       http://0.0.0.0:${PORT}/api/tracking/job/:id`);
+    console.log(`   Maps:               http://0.0.0.0:${PORT}/api/maps/status`);
+    console.log(`   Wallet:             http://0.0.0.0:${PORT}/api/wallet/all`);
+    console.log(`   Dispatch:           http://0.0.0.0:${PORT}/api/dispatch`);
+    console.log(`   Payouts:            http://0.0.0.0:${PORT}/api/payouts/pending`);
     console.log(`   System health:      http://0.0.0.0:${PORT}/api/test/system-health`);
-    console.log(`   Payment validation: http://0.0.0.0:${PORT}/api/test/payment-validation\n`);
+    console.log(`   Stress test:        http://0.0.0.0:${PORT}/api/test/stress-test\n`);
   });
 }
 

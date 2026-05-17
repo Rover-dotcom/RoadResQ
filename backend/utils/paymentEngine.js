@@ -244,7 +244,85 @@ async function getPayments({ status, driverId, customerId, limit = 50 } = {}) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// ─── Receipt Generation (Week 6 v8.0.0) ─────────────────────────────────────
+
+/**
+ * Generates a formatted payment receipt for a completed job.
+ *
+ * @param {string} jobId
+ * @returns {Promise<object|null>}
+ */
+async function getPaymentReceipt(jobId) {
+  const payment = await getPaymentStatus(jobId);
+  if (!payment) return null;
+
+  const jobSnap = await db.collection('jobs').doc(jobId).get();
+  const job = jobSnap.exists ? jobSnap.data() : {};
+
+  const baseFare = job.baseFare || 0;
+  const distanceFare = job.distanceFare || 0;
+  const surgeFare = job.surgeFare || 0;
+  const totalPrice = payment.amount || job.totalPrice || 0;
+  const platformFee = Math.round(totalPrice * 0.10); // 10% platform fee
+  const driverPayout = totalPrice - platformFee;
+
+  return {
+    receiptId: `RRQ-${jobId.slice(0, 8).toUpperCase()}`,
+    jobId,
+    serviceType: job.serviceType || 'unknown',
+    status: payment.status,
+    currency: 'QAR',
+    breakdown: {
+      baseFare: { amount: baseFare, display: `QR ${(baseFare / 100).toFixed(2)}` },
+      distanceFare: { amount: distanceFare, display: `QR ${(distanceFare / 100).toFixed(2)}` },
+      surgeFare: { amount: surgeFare, display: `QR ${(surgeFare / 100).toFixed(2)}` },
+      totalCharged: { amount: totalPrice, display: `QR ${(totalPrice / 100).toFixed(2)}` },
+      platformFee: { amount: platformFee, display: `QR ${(platformFee / 100).toFixed(2)}`, rate: '10%' },
+      driverPayout: { amount: driverPayout, display: `QR ${(driverPayout / 100).toFixed(2)}` },
+    },
+    customerId: payment.customerId || job.userId,
+    driverId: payment.driverId || job.driverId,
+    paidAt: payment.releasedAt || payment.updatedAt,
+    createdAt: payment.createdAt,
+    jobCreatedAt: job.createdAt,
+    jobCompletedAt: job.completedAt,
+  };
+}
+
+/**
+ * Release payment with wallet integration.
+ * Debits customer wallet, credits driver wallet, updates payment record.
+ *
+ * @param {string} jobId
+ * @returns {Promise<object>}
+ */
+async function releasePaymentWithWallet(jobId) {
+  const payment = await getPaymentStatus(jobId);
+  if (!payment) return { success: false, error: 'No payment record found.' };
+  if (payment.status === PAYMENT_STATES.RELEASED) return { success: false, error: 'Payment already released.' };
+
+  // Release the payment record
+  const result = await releasePayment(jobId);
+  if (!result.success) return result;
+
+  // Try wallet integration (non-blocking — wallet is optional)
+  try {
+    const walletEngine = require('./walletEngine');
+    if (payment.customerId && payment.driverId && payment.amount) {
+      await walletEngine.releaseToDriver(payment.customerId, payment.driverId, payment.amount, jobId);
+    }
+  } catch (err) {
+    console.warn('[Payment] Wallet integration failed (non-blocking):', err.message);
+  }
+
+  return result;
+}
+
 module.exports = {
   holdPayment, releasePayment, refundPayment, cancelPayment,
   getPaymentStatus, getPayments, PAYMENT_STATES,
+  // Week 6 v8.0.0
+  getPaymentReceipt,
+  releasePaymentWithWallet,
 };
+

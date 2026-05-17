@@ -270,6 +270,101 @@ async function getDriverLocationEndpoint(req, res) {
   }
 }
 
+// ─── POST /api/tracking/recalculate/:jobId (Week 6 v8.0.0) ──────────────────
+
+async function recalculateRouteEndpoint(req, res) {
+  try {
+    const { jobId } = req.params;
+    const { driverLat, driverLng } = req.body;
+
+    if (!driverLat || !driverLng) {
+      return res.status(400).json({ error: 'driverLat and driverLng are required.' });
+    }
+
+    const { recalculateRoute } = require('../utils/locationEngine');
+    const result = await recalculateRoute(jobId, parseFloat(driverLat), parseFloat(driverLng));
+
+    res.json({ status: 'ok', ...result });
+  } catch (err) {
+    console.error('[Tracking] Recalculate error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ─── GET /api/tracking/progress/:jobId (Week 6 v8.0.0) ──────────────────────
+
+async function getTripProgressEndpoint(req, res) {
+  try {
+    const { jobId } = req.params;
+    const { getTripProgress } = require('../utils/locationEngine');
+    const progress = await getTripProgress(jobId);
+
+    if (!progress) {
+      return res.status(404).json({ error: 'No tracking data for this job.' });
+    }
+
+    res.json({ status: 'ok', ...progress });
+  } catch (err) {
+    console.error('[Tracking] Progress error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ─── GET /api/tracking/polyline (Week 6 v8.0.0) ─────────────────────────────
+
+async function getPolylineEndpoint(req, res) {
+  try {
+    const { originLat, originLng, destLat, destLng } = req.query;
+    if (!originLat || !originLng || !destLat || !destLng) {
+      return res.status(400).json({ error: 'originLat, originLng, destLat, destLng are required.' });
+    }
+
+    const { getRoutePolyline } = require('../utils/locationEngine');
+    const result = await getRoutePolyline(
+      { lat: parseFloat(originLat), lng: parseFloat(originLng) },
+      { lat: parseFloat(destLat), lng: parseFloat(destLng) }
+    );
+
+    res.json({ status: 'ok', ...result });
+  } catch (err) {
+    console.error('[Tracking] Polyline error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ─── POST /api/tracking/driver/:driverId/online (Week 6 v8.0.0) ─────────────
+
+async function goOnline(req, res) {
+  try {
+    const { driverId } = req.params;
+    const { setDriverOnline } = require('../utils/locationEngine');
+    const result = await setDriverOnline(driverId);
+    res.json({ status: 'ok', ...result });
+  } catch (err) {
+    console.error('[Tracking] Go online error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// ─── POST /api/tracking/batch-update (Week 6 v8.0.0) ────────────────────────
+
+async function batchUpdateEndpoint(req, res) {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ error: 'updates array is required.' });
+    }
+
+    const { batchUpdateLocations } = require('../utils/locationEngine');
+    const result = await batchUpdateLocations(updates);
+
+    res.json({ status: 'ok', ...result });
+  } catch (err) {
+    console.error('[Tracking] Batch update error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   pushLocation,
   getNearbyDrivers,
@@ -280,4 +375,11 @@ module.exports = {
   getRouteInfo,
   goOffline,
   getDriverLocationEndpoint,
+  // Week 6 v8.0.0
+  recalculateRouteEndpoint,
+  getTripProgressEndpoint,
+  getPolylineEndpoint,
+  goOnline,
+  batchUpdateEndpoint,
 };
+

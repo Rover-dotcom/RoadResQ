@@ -1,5 +1,5 @@
 /**
- * RoadResQ — Firebase Cloud Functions Entry Point (v7.0.0)
+ * RoadResQ — Firebase Cloud Functions Entry Point (v8.0.0)
  * Region: me-central1 (Doha, Qatar)
  * URL: https://api-h6acdw3itq-ww.a.run.app
  * 
@@ -12,6 +12,7 @@ const { setGlobalOptions } = require('firebase-functions/v2');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
+const { v4: uuidv4 } = require('uuid');
 
 // ─── Firebase Admin Init ──────────────────────────────────────────────────────
 if (!admin.apps.length) {
@@ -32,10 +33,17 @@ app.use(cors({ origin: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Request ID middleware
+app.use((req, res, next) => {
+  req.requestId = uuidv4();
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
+
 // Request logger
 app.use((req, _res, next) => {
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} [${req.requestId}]`);
   }
   next();
 });
@@ -55,6 +63,10 @@ const dashboardRoutes    = require('./routes/dashboardRoutes');
 const completionRoutes   = require('./routes/completionRoutes');
 const trackingRoutes     = require('./routes/trackingRoutes');       // Week 6
 const integrationRoutes  = require('./routes/integrationRoutes');    // Week 6
+const walletRoutes       = require('./routes/walletRoutes');         // Week 6 v8
+const payoutRoutes       = require('./routes/payoutRoutes');         // Week 6 v8
+const dispatchRoutes     = require('./routes/dispatchRoutes');       // Week 6 v8
+const mapsRoutes         = require('./routes/mapsRoutes');           // Week 6 v8
 
 app.use('/api/auth',            authRoutes);
 app.use('/api/jobs',            jobRoutes);
@@ -68,13 +80,17 @@ app.use('/api/disputes',        disputeRoutes);
 app.use('/api/safety',          safetyRoutes);
 app.use('/api/dashboard',       dashboardRoutes);
 app.use('/api/completion',      completionRoutes);
-app.use('/api/tracking',        trackingRoutes);       // Week 6: GPS tracking
-app.use('/api/test',            integrationRoutes);    // Week 6: integration tests
+app.use('/api/tracking',        trackingRoutes);       // GPS tracking
+app.use('/api/test',            integrationRoutes);    // Integration tests
+app.use('/api/wallet',          walletRoutes);         // Wallet system
+app.use('/api/payouts',         payoutRoutes);         // Driver payouts
+app.use('/api/dispatch',        dispatchRoutes);       // Real-time dispatch
+app.use('/api/maps',            mapsRoutes);           // Google Maps integration
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => res.json({
   service: 'RoadResQ API',
-  version: '7.0.0',
+  version: '8.0.0',
   status: 'running',
   region: 'me-central1 (Doha, Qatar)',
   project: 'roadresq-bd6b0',
@@ -91,16 +107,20 @@ app.get('/', (_req, res) => res.json({
     safety:      '/api/safety',
     dashboard:   '/api/dashboard',
     completion:  '/api/completion',
-    tracking:    '/api/tracking (location | nearby | route | job/:id | job/:id/eta | driver-arrived/:id)',
-    integration: '/api/test (system-health | payment-validation | service-check | full-flow)',
+    tracking:    '/api/tracking',
+    wallet:      '/api/wallet',
+    payouts:     '/api/payouts',
+    dispatch:    '/api/dispatch',
+    maps:        '/api/maps',
+    integration: '/api/test',
   },
 }));
 
 // ─── 404 + Error Handlers ─────────────────────────────────────────────────────
-app.use((_req, res) => res.status(404).json({ status: 'error', message: 'Route not found.' }));
-app.use((err, _req, res, _next) => {
-  console.error('[RoadResQ Error]', err.message);
-  res.status(500).json({ status: 'error', message: 'Internal server error.', detail: err.message });
+app.use((req, res) => res.status(404).json({ status: 'error', message: 'Route not found.', requestId: req.requestId }));
+app.use((err, req, res, _next) => {
+  console.error(`[${req.requestId}] Error:`, err.message);
+  res.status(500).json({ status: 'error', message: 'Internal server error.', requestId: req.requestId });
 });
 
 // ─── Export Cloud Function ────────────────────────────────────────────────────
