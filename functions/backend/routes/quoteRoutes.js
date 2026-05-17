@@ -33,6 +33,15 @@ const submitQuoteValidation = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage('estimatedWeight must be a positive number (kg)'),
+  // Scheduling (optional)
+  body('preferredDate')
+    .optional()
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage('preferredDate must be in YYYY-MM-DD format'),
+  body('preferredTime')
+    .optional()
+    .matches(/^\d{2}:\d{2}$/)
+    .withMessage('preferredTime must be in HH:MM 24-hour format'),
 ];
 
 const respondValidation = [

@@ -66,6 +66,8 @@ const createJobHandler = async (req, res) => {
     vehicleCondition, loadDescription, garageUrgency,
     repairDescription, customerNotes, garageId,
     pickupCoords, dropCoords,
+    // Scheduling (new)
+    isScheduled, scheduledPickupDate, scheduledPickupTime,
     // Week 4: Others support
     customItem, customDetails, customPhotoUrls,
     // Week 4: Logistics builder
@@ -92,6 +94,8 @@ const createJobHandler = async (req, res) => {
       vehicleCondition, loadDescription, garageUrgency,
       repairDescription, customerNotes, garageId,
       pickupCoords, dropCoords,
+      // Scheduling
+      isScheduled, scheduledPickupDate, scheduledPickupTime,
       // Week 4 fields
       customItem, customDetails, customPhotoUrls,
       dimensions, weightKg, loadingType, pickupAccessibility,
@@ -100,9 +104,11 @@ const createJobHandler = async (req, res) => {
       equipmentType, requiresGatePass, isSpecialLoad,
     });
 
-    // ── Auto-assign: derive all constraints from vehicleType automatically
+    // ── Auto-assign: only for immediate (non-scheduled) jobs
     let assignedDriver = null;
-    if (job.status === 'pending' && !job.requiresQuote) {
+    const isJobScheduled = job.isScheduled || false;
+
+    if (job.status === 'pending' && !job.requiresQuote && !isJobScheduled) {
       try {
         // deriveJobConstraints auto-figures out truck type, equipment, capacity,
         // isSpecialLoad — customer fields override only what they explicitly set
@@ -121,7 +127,7 @@ const createJobHandler = async (req, res) => {
       }
     }
 
-    // Build a clear response: tell the customer what truck + equipment is coming
+    // Build dispatch status — for scheduled jobs, confirm the booking
     const constraints = job.vehicleType ? deriveJobConstraints(job.vehicleType) : {};
     const driverSummary = assignedDriver
       ? {
@@ -140,26 +146,38 @@ const createJobHandler = async (req, res) => {
         }
       : null;
 
-    // Dispatch status: if no driver found, give a clear fallback explanation
-    const dispatchStatus = assignedDriver
-      ? {
-          dispatched: true,
-          message: 'A qualified driver has been assigned to your job.',
-        }
-      : {
-          dispatched: false,
-          message: job.requiresQuote
-            ? 'Your job requires a custom quote. A garage will review it and respond with a price.'
-            : `No driver is currently available for a ${constraints.vehicleLabel || job.vehicleType || 'your vehicle'} in your area. Your job has been queued and will be assigned as soon as a driver becomes available.`,
-          whatIsNeeded: job.requiresQuote ? null : {
-            truckType: constraints.requiredTruckType || job.requiredTruckType,
-            equipmentTypes: constraints.requiredEquipmentTypes || [],
-            isSpecialLoad: constraints.isSpecialLoad || false,
-          },
-          nextSteps: job.requiresQuote
-            ? 'Check the Quotes section for a response from the garage.'
-            : 'We will notify you as soon as a driver accepts your job. You can also check job status anytime.',
-        };
+    let dispatchStatus;
+    if (isJobScheduled) {
+      // Scheduled job — no immediate dispatch, notify driver assignment closer to date
+      dispatchStatus = {
+        dispatched: false,
+        isScheduled: true,
+        scheduledPickupDate: job.scheduledPickupDate,
+        scheduledPickupTime: job.scheduledPickupTime,
+        message: `Your job is scheduled for ${job.scheduledPickupDate}${job.scheduledPickupTime ? ` at ${job.scheduledPickupTime}` : ''}. A driver will be assigned closer to your pickup time.`,
+        nextSteps: 'You can cancel or reschedule from your job history at any time before the pickup.',
+      };
+    } else if (assignedDriver) {
+      dispatchStatus = {
+        dispatched: true,
+        message: 'A qualified driver has been assigned to your job.',
+      };
+    } else {
+      dispatchStatus = {
+        dispatched: false,
+        message: job.requiresQuote
+          ? 'Your job requires a custom quote. A garage will review it and respond with a price.'
+          : `No driver is currently available for a ${constraints.vehicleLabel || job.vehicleType || 'your vehicle'} in your area. Your job has been queued and will be assigned as soon as a driver becomes available.`,
+        whatIsNeeded: job.requiresQuote ? null : {
+          truckType: constraints.requiredTruckType || job.requiredTruckType,
+          equipmentTypes: constraints.requiredEquipmentTypes || [],
+          isSpecialLoad: constraints.isSpecialLoad || false,
+        },
+        nextSteps: job.requiresQuote
+          ? 'Check the Quotes section for a response from the garage.'
+          : 'We will notify you as soon as a driver accepts your job. You can also check job status anytime.',
+      };
+    }
 
     return success(res, { job, assignedDriver: driverSummary, dispatchStatus }, 201);
 
@@ -527,9 +545,13 @@ const updateStatusHandler = async (req, res) => {
 // ─── DELETE /api/jobs/:id/cancel ─────────────────────────────────────────────
 
 const cancelJobHandler = async (req, res) => {
+  const { cancellationReason, cancelledBy } = req.body || {};
   try {
-    await cancelJob(req.params.id);
-    return success(res, { jobId: req.params.id, status: 'cancelled' });
+    await cancelJob(req.params.id, {
+      reason: cancellationReason || 'customer_request',
+      cancelledBy: cancelledBy || 'customer',
+    });
+    return success(res, { jobId: req.params.id, status: 'cancelled', cancellationReason: cancellationReason || 'customer_request' });
   } catch (err) {
     console.error('Cancel job error:', err);
     return error(res, err.message || 'Failed to cancel job.', err.message === 'Job not found' ? 404 : 500);

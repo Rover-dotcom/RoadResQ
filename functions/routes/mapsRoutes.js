@@ -17,6 +17,7 @@ const router = Router();
 
 router.get('/route', getRouteHandler);
 router.get('/distance-matrix', getDistanceMatrixHandler);
+router.post('/distance-matrix', getDistanceMatrixHandler);
 router.get('/geocode', geocodeHandler);
 router.get('/reverse-geocode', reverseGeocodeHandler);
 router.get('/polyline', getPolylineHandler);

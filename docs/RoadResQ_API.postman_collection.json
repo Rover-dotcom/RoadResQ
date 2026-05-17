@@ -1443,6 +1443,87 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Safety System",
+      "item": [
+        { "name": "Risk Check", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"driverId\":\"{{driverId}}\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/safety/risk-check","host":["{{base_url}}"],"path":["api","safety","risk-check"]}, "description": "Run risk assessment for a job." }, "response": [] },
+        { "name": "Generate PIN", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/safety/pin/generate","host":["{{base_url}}"],"path":["api","safety","pin","generate"]} }, "response": [] },
+        { "name": "Verify PIN", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"pin\":\"1234\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/safety/pin/verify","host":["{{base_url}}"],"path":["api","safety","pin","verify"]} }, "response": [] },
+        { "name": "Get Safety Checklists", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/safety/checklists","host":["{{base_url}}"],"path":["api","safety","checklists"]} }, "response": [] },
+        { "name": "Get Checklist by Service", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/safety/checklist/tow","host":["{{base_url}}"],"path":["api","safety","checklist","tow"]} }, "response": [] },
+        { "name": "Submit Service Check", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"driverId\":\"{{driverId}}\",\"serviceType\":\"tow\",\"checklist\":{\"vehicleLoadedSecurely\":true,\"strapsChainsTightened\":true}}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/safety/service-check","host":["{{base_url}}"],"path":["api","safety","service-check"]} }, "response": [] },
+        { "name": "Get Job Safety State", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/safety/job/{{jobId}}","host":["{{base_url}}"],"path":["api","safety","job","{{jobId}}"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "GPS Tracking",
+      "item": [
+        { "name": "Push Driver Location", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{authToken}}"}], "body": {"mode":"raw","raw":"{\"driverId\":\"{{driverId}}\",\"lat\":25.2854,\"lng\":51.531,\"heading\":180,\"speed\":45}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/tracking/location","host":["{{base_url}}"],"path":["api","tracking","location"]} }, "response": [] },
+        { "name": "Nearby Drivers", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/nearby?lat=25.2854&lng=51.531&radius=10","host":["{{base_url}}"],"path":["api","tracking","nearby"],"query":[{"key":"lat","value":"25.2854"},{"key":"lng","value":"51.531"},{"key":"radius","value":"10"}]} }, "response": [] },
+        { "name": "Get Driver Location", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/driver/{{driverId}}","host":["{{base_url}}"],"path":["api","tracking","driver","{{driverId}}"]} }, "response": [] },
+        { "name": "Set Driver Offline", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/offline/{{driverId}}","host":["{{base_url}}"],"path":["api","tracking","offline","{{driverId}}"]} }, "response": [] },
+        { "name": "Get Route", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/route?originLat=25.28&originLng=51.53&destLat=25.30&destLng=51.55","host":["{{base_url}}"],"path":["api","tracking","route"],"query":[{"key":"originLat","value":"25.28"},{"key":"originLng","value":"51.53"},{"key":"destLat","value":"25.30"},{"key":"destLng","value":"51.55"}]} }, "response": [] },
+        { "name": "Start Job Tracking", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{authToken}}"}], "body": {"mode":"raw","raw":"{\"driverId\":\"{{driverId}}\",\"pickupLat\":25.29,\"pickupLng\":51.54,\"dropoffLat\":25.27,\"dropoffLng\":51.52}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/tracking/job/{{jobId}}/start","host":["{{base_url}}"],"path":["api","tracking","job","{{jobId}}","start"]} }, "response": [] },
+        { "name": "Get Job Tracking", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/job/{{jobId}}","host":["{{base_url}}"],"path":["api","tracking","job","{{jobId}}"]} }, "response": [] },
+        { "name": "Get Job ETA", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/job/{{jobId}}/eta","host":["{{base_url}}"],"path":["api","tracking","job","{{jobId}}","eta"]} }, "response": [] },
+        { "name": "Driver Arrived Check", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{authToken}}"}], "body": {"mode":"raw","raw":"{\"driverId\":\"{{driverId}}\",\"lat\":25.29,\"lng\":51.54}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/tracking/driver-arrived/{{jobId}}","host":["{{base_url}}"],"path":["api","tracking","driver-arrived","{{jobId}}"]} }, "response": [] },
+        { "name": "Trip Progress", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/tracking/progress/{{jobId}}","host":["{{base_url}}"],"path":["api","tracking","progress","{{jobId}}"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "Job Completion",
+      "item": [
+        { "name": "Complete Job", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"},{"key":"Authorization","value":"Bearer {{authToken}}"}], "body": {"mode":"raw","raw":"{\"completedBy\":\"driver\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/completion/{{jobId}}/complete","host":["{{base_url}}"],"path":["api","completion","{{jobId}}","complete"]} }, "response": [] },
+        { "name": "Get Job Report", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/completion/{{jobId}}/report","host":["{{base_url}}"],"path":["api","completion","{{jobId}}","report"]} }, "response": [] },
+        { "name": "Hold Payment", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/completion/{{jobId}}/hold-payment","host":["{{base_url}}"],"path":["api","completion","{{jobId}}","hold-payment"]} }, "response": [] },
+        { "name": "Get All Reports", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/completion/reports","host":["{{base_url}}"],"path":["api","completion","reports"]} }, "response": [] },
+        { "name": "Get All Payments", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/completion/payments","host":["{{base_url}}"],"path":["api","completion","payments"]} }, "response": [] },
+        { "name": "Get Audit Logs", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/completion/audit-logs","host":["{{base_url}}"],"path":["api","completion","audit-logs"]} }, "response": [] },
+        { "name": "Storage Status", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/completion/storage-status","host":["{{base_url}}"],"path":["api","completion","storage-status"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "Discipline System",
+      "item": [
+        { "name": "Report No-Show", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"customerId\":\"{{userId}}\",\"driverId\":\"{{driverId}}\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/discipline/no-show","host":["{{base_url}}"],"path":["api","discipline","no-show"]} }, "response": [] },
+        { "name": "Issue Late Warning", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"reason\":\"Late arrival\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/discipline/warning/{{driverId}}","host":["{{base_url}}"],"path":["api","discipline","warning","{{driverId}}"]} }, "response": [] },
+        { "name": "Clear Suspension", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"reason\":\"Review complete\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/discipline/clear/{{driverId}}","host":["{{base_url}}"],"path":["api","discipline","clear","{{driverId}}"]} }, "response": [] },
+        { "name": "Priority Queue", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/discipline/priority-queue","host":["{{base_url}}"],"path":["api","discipline","priority-queue"]} }, "response": [] },
+        { "name": "Admin Review Queue", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/discipline/admin-review","host":["{{base_url}}"],"path":["api","discipline","admin-review"]} }, "response": [] },
+        { "name": "Driver Safety Check", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"driverId\":\"{{driverId}}\",\"checklist\":{\"vehicleLoadedSecurely\":true,\"strapsChainsTightened\":true}}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/discipline/safety-check/{{jobId}}/driver","host":["{{base_url}}"],"path":["api","discipline","safety-check","{{jobId}}","driver"]} }, "response": [] },
+        { "name": "Get Safety Checks", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/discipline/safety-check/{{jobId}}","host":["{{base_url}}"],"path":["api","discipline","safety-check","{{jobId}}"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "Fraud Detection",
+      "item": [
+        { "name": "Flagged Jobs", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/fraud/jobs","host":["{{base_url}}"],"path":["api","fraud","jobs"]} }, "response": [] },
+        { "name": "Flagged Users", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/fraud/users","host":["{{base_url}}"],"path":["api","fraud","users"]} }, "response": [] },
+        { "name": "Fraud Score", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/fraud/score/{{jobId}}","host":["{{base_url}}"],"path":["api","fraud","score","{{jobId}}"]} }, "response": [] },
+        { "name": "Run Fraud Check", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/fraud/check","host":["{{base_url}}"],"path":["api","fraud","check"]} }, "response": [] },
+        { "name": "Apply Penalty", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"userId\":\"{{userId}}\",\"level\":\"warning\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/fraud/action","host":["{{base_url}}"],"path":["api","fraud","action"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "Incidents",
+      "item": [
+        { "name": "Report Incident", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"reportedBy\":\"{{userId}}\",\"type\":\"panic\",\"description\":\"Emergency situation\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/incidents","host":["{{base_url}}"],"path":["api","incidents"]} }, "response": [] },
+        { "name": "List Incidents", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/incidents","host":["{{base_url}}"],"path":["api","incidents"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "Disputes",
+      "item": [
+        { "name": "File Dispute", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\"jobId\":\"{{jobId}}\",\"reportedById\":\"{{userId}}\",\"type\":\"overcharge\",\"description\":\"Charged more than quoted\"}", "options":{"raw":{"language":"json"}}}, "url": {"raw":"{{base_url}}/api/disputes","host":["{{base_url}}"],"path":["api","disputes"]} }, "response": [] },
+        { "name": "List Disputes", "request": { "method": "GET", "header": [], "url": {"raw":"{{base_url}}/api/disputes","host":["{{base_url}}"],"path":["api","disputes"]} }, "response": [] }
+      ]
+    },
+    {
+      "name": "Admin Dashboard",
+      "item": [
+        { "name": "Admin Overview", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{authToken}}"}], "url": {"raw":"{{base_url}}/api/dashboard/admin","host":["{{base_url}}"],"path":["api","dashboard","admin"]} }, "response": [] }
+      ]
     }
   ]
 }

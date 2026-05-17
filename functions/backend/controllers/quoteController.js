@@ -77,7 +77,8 @@ const submitQuoteHandler = async (req, res) => {
     estimatedWeight,
     dimensions,
     urgency,
-    preferredDate,
+    preferredDate,       // 'YYYY-MM-DD' — customer's preferred pickup/service date
+    preferredTime,       // 'HH:MM' 24h — customer's preferred time (Qatar)
     attachmentUrls,
     customerNotes,
   } = req.body;
@@ -108,6 +109,7 @@ const submitQuoteHandler = async (req, res) => {
       dimensions: dimensions || null,
       urgency: urgency || 'medium',
       preferredDate: preferredDate || null,
+      preferredTime: preferredTime || null,
       attachmentUrls: attachmentUrls || [],
       customerNotes: customerNotes || null,
 

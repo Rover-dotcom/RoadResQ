@@ -47,20 +47,33 @@ async function getRouteHandler(req, res) {
   }
 }
 
-// GET /api/maps/distance-matrix?origins=lat,lng|lat,lng&destinations=lat,lng|lat,lng
+// GET/POST /api/maps/distance-matrix
 async function getDistanceMatrixHandler(req, res) {
   try {
-    const { origins, destinations } = req.query;
-    if (!origins || !destinations) {
-      return fail(res, 'origins and destinations query params required. Format: lat,lng|lat,lng');
+    let originsArr, destsArr;
+
+    // Support POST body (array of {lat,lng}) or GET query string (lat,lng|lat,lng)
+    if (req.body && req.body.origins) {
+      originsArr = req.body.origins;
+      destsArr = req.body.destinations;
+    } else {
+      const { origins, destinations } = req.query;
+      if (!origins || !destinations) {
+        return fail(res, 'origins and destinations required. GET: ?origins=lat,lng|lat,lng&destinations=lat,lng|lat,lng  POST body: { origins: [{lat,lng}], destinations: [{lat,lng}] }');
+      }
+      const parseCoords = (str) => str.split('|').map(pair => {
+        const [lat, lng] = pair.split(',').map(Number);
+        return { lat, lng };
+      });
+      originsArr = parseCoords(origins);
+      destsArr = parseCoords(destinations);
     }
 
-    const parseCoords = (str) => str.split('|').map(pair => {
-      const [lat, lng] = pair.split(',').map(Number);
-      return { lat, lng };
-    });
+    if (!originsArr || !destsArr || !originsArr.length || !destsArr.length) {
+      return fail(res, 'origins and destinations arrays are required and must be non-empty.');
+    }
 
-    const result = await getDistanceMatrix(parseCoords(origins), parseCoords(destinations));
+    const result = await getDistanceMatrix(originsArr, destsArr);
     return ok(res, result);
   } catch (err) {
     console.error('[Maps] Distance matrix error:', err);
