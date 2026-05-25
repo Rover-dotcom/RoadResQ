@@ -3,6 +3,7 @@
  */
 
 const { Router } = require('express');
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   listAllWallets,
   getBalance,
@@ -14,12 +15,12 @@ const {
 const router = Router();
 
 // Admin: list all wallets
-router.get('/all', listAllWallets);
+router.get('/all', verifyToken, requireRole('admin'), listAllWallets);
 
 // User-specific routes
-router.get('/:userId', getBalance);
-router.get('/:userId/transactions', getTransactions);
-router.post('/:userId/deposit', deposit);
-router.post('/:userId/withdraw', withdraw);
+router.get('/:userId', verifyToken, getBalance);
+router.get('/:userId/transactions', verifyToken, getTransactions);
+router.post('/:userId/deposit', verifyToken, deposit);
+router.post('/:userId/withdraw', verifyToken, withdraw);
 
 module.exports = router;

@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "RoadResQ API v9.0.0 — Week 7",
+    "description": "Security + Performance + Production Ready. All endpoints require Bearer token (except health check).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "authToken", "value": "" },
+    { "key": "userId", "value": "test-user-001" },
+    { "key": "driverId", "value": "test-driver-001" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET / (Health)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/", "auth": { "type": "noauth" } }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Notifications",
+      "item": [
+        {
+          "name": "POST Register FCM Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/notifications/token",
+            "body": { "mode": "raw", "raw": "{\"token\": \"fcm-test-token-123\", \"platform\": \"android\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "GET My Notifications",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications?limit=20" }
+        },
+        {
+          "name": "GET Unread Count",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/unread-count" }
+        },
+        {
+          "name": "PUT Mark All Read",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/notifications/read-all" }
+        },
+        {
+          "name": "PUT Mark One Read",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/notifications/notif-id-here/read" }
+        },
+        {
+          "name": "POST Send Notification (Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/notifications/send",
+            "body": { "mode": "raw", "raw": "{\"userId\": \"{{userId}}\", \"title\": \"Test Alert\", \"body\": \"Hello from admin\", \"type\": \"SYSTEM_ALERT\"}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Saved Locations",
+      "item": [
+        {
+          "name": "POST Save Location",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/saved-locations",
+            "body": { "mode": "raw", "raw": "{\"label\": \"Home\", \"address\": \"123 Pearl Blvd, Doha\", \"lat\": 25.276987, \"lng\": 51.520008}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "GET My Saved Locations",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/saved-locations" }
+        },
+        {
+          "name": "PUT Update Location",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/saved-locations/location-id-here",
+            "body": { "mode": "raw", "raw": "{\"label\": \"Office\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "DELETE Remove Location",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/saved-locations/location-id-here" }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Admin Backup",
+      "item": [
+        {
+          "name": "POST Run Full Backup (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/backup" }
+        },
+        {
+          "name": "GET Backup History (Admin)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/backup/history" }
+        },
+        {
+          "name": "GET Latest Backup (Admin)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/backup/latest" }
+        },
+        {
+          "name": "GET System Info (Admin)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/system-info" }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Fraud (Upgraded)",
+      "item": [
+        {
+          "name": "POST Check Job Fraud (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/fraud/check", "body": { "mode": "raw", "raw": "{\"jobId\": \"test-job-001\"}", "options": { "raw": { "language": "json" } } } }
+        },
+        {
+          "name": "GET Flagged Jobs (Admin)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/fraud/jobs" }
+        },
+        {
+          "name": "GET Flagged Users (Admin)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/fraud/users" }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Wallet (Idempotency)",
+      "item": [
+        {
+          "name": "POST Deposit (with Idempotency-Key)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/wallet/{{userId}}/deposit",
+            "header": [{ "key": "Idempotency-Key", "value": "dep-{{$randomUUID}}" }],
+            "body": { "mode": "raw", "raw": "{\"amount\": 5000, \"reason\": \"Wallet top-up\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "POST Withdraw (with Idempotency-Key)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/wallet/{{userId}}/withdraw",
+            "header": [{ "key": "Idempotency-Key", "value": "wdr-{{$randomUUID}}" }],
+            "body": { "mode": "raw", "raw": "{\"amount\": 2000, \"reason\": \"Bank transfer\"}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Rate Limit Test",
+      "item": [
+        {
+          "name": "Rapid Auth (should 429 after 10)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/login", "auth": { "type": "noauth" }, "body": { "mode": "raw", "raw": "{\"phone\": \"+97400000000\"}", "options": { "raw": { "language": "json" } } } }
+        }
+      ]
+    }
+  ]
+}

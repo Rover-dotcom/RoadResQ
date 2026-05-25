@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   submitQuoteHandler,
   getQuotesHandler,
@@ -54,23 +55,23 @@ const respondValidation = [
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // IMPORTANT: specific paths BEFORE :id param
-router.get('/my-quotes', getMyQuotesHandler);                          // Customer: their quotes + status
+router.get('/my-quotes', verifyToken, getMyQuotesHandler);                          // Customer: their quotes + status
 
-router.post('/', submitQuoteValidation, submitQuoteHandler);           // Submit new quote request
-router.get('/', getQuotesHandler);                                     // Admin read-only report: all quotes
+router.post('/', verifyToken, submitQuoteValidation, submitQuoteHandler);           // Submit new quote request
+router.get('/', verifyToken, requireRole('admin'), getQuotesHandler);                                     // Admin read-only report: all quotes
 
-router.get('/:id', getQuoteByIdHandler);                              // Single quote details
-router.put('/:id/respond', respondValidation, respondToQuoteHandler); // Garage responds with price
-router.put('/:id/accept', acceptQuoteByCustomerHandler);              // Customer accepts
-router.put('/:id/reject', rejectQuoteByCustomerHandler);              // Customer rejects
+router.get('/:id', verifyToken, getQuoteByIdHandler);                              // Single quote details
+router.put('/:id/respond', verifyToken, requireRole('garage', 'admin'), respondValidation, respondToQuoteHandler); // Garage responds with price
+router.put('/:id/accept', verifyToken, acceptQuoteByCustomerHandler);              // Customer accepts
+router.put('/:id/reject', verifyToken, rejectQuoteByCustomerHandler);              // Customer rejects
 
 // ─── Bidding System (Industrial / Heavy Equipment) ────────────────────────────
 // POST /api/quotes/:id/bid              — driver/garage submits bid (price + ETA + equipment)
 // GET  /api/quotes/:id/bids             — customer views all bids (sorted by price, highlights best)
 // PUT  /api/quotes/:id/bids/:bidId/accept — customer accepts winning bid → creates linked job
 
-router.post('/:id/bid', submitQuoteBidHandler);
-router.get('/:id/bids', getQuoteBidsHandler);
-router.put('/:id/bids/:bidId/accept', acceptQuoteBidHandler);
+router.post('/:id/bid', verifyToken, requireRole('garage', 'admin'), submitQuoteBidHandler);
+router.get('/:id/bids', verifyToken, getQuoteBidsHandler);
+router.put('/:id/bids/:bidId/accept', verifyToken, acceptQuoteBidHandler);
 
 module.exports = router;

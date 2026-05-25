@@ -4,6 +4,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   reportIncident, getIncidents, getLiveMonitor, getAnalytics,
   getIncidentDetail, adminAction, panicButton, inactivityCheck,
@@ -11,10 +12,10 @@ const {
 } = require('../controllers/incidentController');
 
 // Live monitor & analytics (no ID required — register BEFORE /:id)
-router.get('/live',         getLiveMonitor);
-router.get('/analytics',    getAnalytics);
-router.get('/alerts',       getAdminAlerts);
-router.post('/inactivity-check', inactivityCheck);
+router.get('/live',         verifyToken, requireRole('admin'), getLiveMonitor);
+router.get('/analytics',    verifyToken, requireRole('admin'), getAnalytics);
+router.get('/alerts',       verifyToken, requireRole('admin'), getAdminAlerts);
+router.post('/inactivity-check', verifyToken, requireRole('admin'), inactivityCheck);
 
 // Panic button
 router.post('/panic',
@@ -34,9 +35,9 @@ router.post('/',
   reportIncident
 );
 
-router.get('/',               getIncidents);
-router.get('/:id',            getIncidentDetail);
-router.put('/:id/action',     adminAction);
-router.put('/alerts/:id/read', markAlertRead);
+router.get('/',               verifyToken, getIncidents);
+router.get('/:id',            verifyToken, getIncidentDetail);
+router.put('/:id/action',     verifyToken, requireRole('admin'), adminAction);
+router.put('/alerts/:id/read', verifyToken, requireRole('admin'), markAlertRead);
 
 module.exports = router;

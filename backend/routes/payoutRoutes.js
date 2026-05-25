@@ -3,6 +3,7 @@
  */
 
 const { Router } = require('express');
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   requestPayoutHandler,
   pendingPayoutsHandler,
@@ -14,11 +15,11 @@ const {
 
 const router = Router();
 
-router.post('/request', requestPayoutHandler);
-router.get('/pending', pendingPayoutsHandler);
-router.post('/:id/approve', approvePayoutHandler);
-router.post('/:id/reject', rejectPayoutHandler);
-router.get('/driver/:driverId', driverPayoutHistoryHandler);
-router.get('/:id', getPayoutHandler);
+router.post('/request', verifyToken, requireRole('driver'), requestPayoutHandler);
+router.get('/pending', verifyToken, requireRole('admin'), pendingPayoutsHandler);
+router.post('/:id/approve', verifyToken, requireRole('admin'), approvePayoutHandler);
+router.post('/:id/reject', verifyToken, requireRole('admin'), rejectPayoutHandler);
+router.get('/driver/:driverId', verifyToken, driverPayoutHistoryHandler);
+router.get('/:id', verifyToken, getPayoutHandler);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   createJobHandler,
   getJobsHandler,
@@ -57,31 +58,31 @@ const createJobValidation = [
 // Catalog / Info
 router.get('/service-info', getServiceInfoHandler);         // All service types + pricing catalog
 router.get('/price-estimate', getPriceEstimateHandler);    // ?vehicleType=Sedan&distanceKm=12
-router.get('/available', getAvailableJobsHandler);         // ?truckType=standard_tow&serviceType=tow (driver use)
-router.get('/my-jobs', getMyJobsHandler);                  // ?userId=xxx&status=pending (customer use)
+router.get('/available', verifyToken, requireRole('driver', 'admin'), getAvailableJobsHandler);
+router.get('/my-jobs', verifyToken, getMyJobsHandler);
 
 // CRUD
-router.post('/', createJobValidation, createJobHandler);   // POST /api/jobs
-router.get('/', getJobsHandler);                           // GET  /api/jobs?userId=|driverId=|status=
+router.post('/', verifyToken, createJobValidation, createJobHandler);
+router.get('/', verifyToken, getJobsHandler);
 
 // Job by ID
-router.get('/:id', getJobByIdHandler);                     // GET /api/jobs/:id (full details)
-router.get('/:id/status', getJobStatusHandler);            // GET /api/jobs/:id/status (live status + driver ETA)
-router.get('/:id/match', matchDriversHandler);             // GET /api/jobs/:id/match (matching drivers list)
+router.get('/:id', verifyToken, getJobByIdHandler);
+router.get('/:id/status', verifyToken, getJobStatusHandler);
+router.get('/:id/match', verifyToken, matchDriversHandler);
 
 // Job actions
-router.put('/:id/accept', [
+router.put('/:id/accept', verifyToken, requireRole('driver', 'admin'), [
   body('driverId').notEmpty().withMessage('driverId is required'),
 ], acceptJobHandler);
 
-router.put('/:id/status', [
+router.put('/:id/status', verifyToken, [
   body('status').notEmpty().withMessage('status is required'),
 ], updateStatusHandler);
 
-router.put('/:id/rate-driver', [
+router.put('/:id/rate-driver', verifyToken, [
   body('rating').isFloat({ min: 1, max: 5 }).withMessage('rating must be 1–5'),
 ], rateDriverHandler);
 
-router.delete('/:id/cancel', cancelJobHandler);            // DELETE /api/jobs/:id/cancel
+router.delete('/:id/cancel', verifyToken, cancelJobHandler);
 
 module.exports = router;

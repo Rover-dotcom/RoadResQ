@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   createDriverHandler,
   getDriversHandler,
@@ -33,8 +34,8 @@ const createDriverValidation = [
 
 router.get('/truck-types', getTruckTypesHandler);          // GET /api/drivers/truck-types
 
-router.post('/', createDriverValidation, createDriverHandler);  // POST /api/drivers
-router.get('/', getDriversHandler);                             // GET  /api/drivers?truckType=&isOnline=&isApproved=
+router.post('/', verifyToken, createDriverValidation, createDriverHandler);  // POST /api/drivers
+router.get('/', verifyToken, getDriversHandler);                             // GET  /api/drivers?truckType=&isOnline=&isApproved=
 
 // Legacy: set online/offline via body { driverUid, isOnline }
 router.put('/status', [
@@ -43,15 +44,15 @@ router.put('/status', [
 ], setStatusHandler);
 
 // Per-driver routes (IMPORTANT: specific sub-paths before bare /:id)
-router.get('/:id/status', getDriverStatusHandler);         // GET  /api/drivers/:id/status (full status + compliance)
-router.put('/:id/online', goOnlineHandler);                // PUT  /api/drivers/:id/online  { lastLocation? }
-router.put('/:id/offline', goOfflineHandler);              // PUT  /api/drivers/:id/offline
+router.get('/:id/status', verifyToken, getDriverStatusHandler);         // GET  /api/drivers/:id/status (full status + compliance)
+router.put('/:id/online', verifyToken, goOnlineHandler);                // PUT  /api/drivers/:id/online  { lastLocation? }
+router.put('/:id/offline', verifyToken, goOfflineHandler);              // PUT  /api/drivers/:id/offline
 
-router.get('/:id', getDriverByIdHandler);                  // GET /api/drivers/:id
+router.get('/:id', verifyToken, getDriverByIdHandler);                  // GET /api/drivers/:id
 router.put('/:id/approve', [
   body('approve').isBoolean().withMessage('approve must be true or false'),
 ], approveDriverHandler);
 
-router.put('/:id', updateDriverHandler);                   // PUT /api/drivers/:id
+router.put('/:id', verifyToken, updateDriverHandler);                   // PUT /api/drivers/:id
 
 module.exports = router;

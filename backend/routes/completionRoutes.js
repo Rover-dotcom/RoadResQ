@@ -18,6 +18,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   completeJobHandler,
   getJobReportHandler,
@@ -33,18 +34,18 @@ const {
 } = require('../controllers/completionController');
 
 // Static routes FIRST (before parameterized :id routes)
-router.get('/reports', getReportsHandler);
-router.get('/payments', getPaymentsHandler);
-router.post('/archive-old', archiveOldJobsHandler);
-router.post('/cleanup-files', cleanupFilesHandler);
-router.get('/storage-status', storageStatusHandler);
-router.get('/audit-logs', getAuditLogsHandler);
+router.get('/reports', verifyToken, requireRole('admin'), getReportsHandler);
+router.get('/payments', verifyToken, requireRole('admin'), getPaymentsHandler);
+router.post('/archive-old', verifyToken, requireRole('admin'), archiveOldJobsHandler);
+router.post('/cleanup-files', verifyToken, requireRole('admin'), cleanupFilesHandler);
+router.get('/storage-status', verifyToken, requireRole('admin'), storageStatusHandler);
+router.get('/audit-logs', verifyToken, requireRole('admin'), getAuditLogsHandler);
 
 // Parameterized routes
-router.post('/:id/complete', completeJobHandler);
-router.get('/:id/report', getJobReportHandler);
-router.get('/:id/payment', getPaymentHandler);
-router.post('/:id/hold-payment', holdPaymentHandler);
-router.get('/:id/audit-trail', getAuditTrailHandler);
+router.post('/:id/complete', verifyToken, completeJobHandler);
+router.get('/:id/report', verifyToken, getJobReportHandler);
+router.get('/:id/payment', verifyToken, getPaymentHandler);
+router.post('/:id/hold-payment', verifyToken, holdPaymentHandler);
+router.get('/:id/audit-trail', verifyToken, getAuditTrailHandler);
 
 module.exports = router;

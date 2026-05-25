@@ -3,6 +3,7 @@
  */
 
 const { Router } = require('express');
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   dispatchJobHandler,
   acceptJobHandler,
@@ -13,10 +14,10 @@ const {
 
 const router = Router();
 
-router.post('/:jobId', dispatchJobHandler);
-router.post('/:jobId/accept', acceptJobHandler);
-router.post('/:jobId/decline', declineJobHandler);
-router.post('/:jobId/cancel', cancelDispatchHandler);
-router.get('/:jobId/status', dispatchStatusHandler);
+router.post('/:jobId', verifyToken, dispatchJobHandler);
+router.post('/:jobId/accept', verifyToken, requireRole('driver'), acceptJobHandler);
+router.post('/:jobId/decline', verifyToken, requireRole('driver'), declineJobHandler);
+router.post('/:jobId/cancel', verifyToken, cancelDispatchHandler);
+router.get('/:jobId/status', verifyToken, dispatchStatusHandler);
 
 module.exports = router;

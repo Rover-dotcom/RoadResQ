@@ -213,8 +213,125 @@ async function getFraudWarnings(userId) {
   return snap.exists ? (snap.data().fraudWarnings || 0) : 0;
 }
 
+// ─── Week 7: Velocity Check ──────────────────────────────────────────────────
+// Detects rapid-fire booking attempts (3+ jobs in 1 hour = suspicious)
+
+const VELOCITY_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const VELOCITY_THRESHOLD = 3;
+
+async function checkVelocity(userId) {
+  const oneHourAgo = new Date(Date.now() - VELOCITY_WINDOW_MS).toISOString();
+  const snap = await db.collection('jobs')
+    .where('userId', '==', userId)
+    .where('createdAt', '>=', oneHourAgo)
+    .get();
+
+  if (snap.size >= VELOCITY_THRESHOLD) {
+    return { suspicious: true, reason: 'RAPID_BOOKING', jobsInLastHour: snap.size };
+  }
+  return { suspicious: false, jobsInLastHour: snap.size };
+}
+
+// ─── Week 7: Suspicious Payout Detection ─────────────────────────────────────
+// New driver (<7 days) requesting large payout (>QR 200)
+
+const NEW_DRIVER_DAYS = 7;
+const SUSPICIOUS_PAYOUT_FILS = 20000; // QR 200
+
+async function checkSuspiciousPayout(driverId) {
+  const snap = await db.collection('drivers').doc(driverId).get();
+  if (!snap.exists) return { suspicious: false };
+  const driver = snap.data();
+  const createdAt = driver.createdAt ? new Date(driver.createdAt) : new Date();
+  const daysSinceCreation = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
+  return {
+    suspicious: daysSinceCreation < NEW_DRIVER_DAYS,
+    reason: daysSinceCreation < NEW_DRIVER_DAYS ? 'NEW_DRIVER_HIGH_PAYOUT' : null,
+    daysSinceCreation: Math.floor(daysSinceCreation),
+    threshold: `${NEW_DRIVER_DAYS} days`,
+  };
+}
+
+// ─── Week 7: Excessive Cancellations ─────────────────────────────────────────
+// 5+ cancellations in 24 hours = auto-block
+
+const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CANCEL_BLOCK_THRESHOLD = 5;
+
+async function checkExcessiveCancellations(userId) {
+  const oneDayAgo = new Date(Date.now() - CANCEL_WINDOW_MS).toISOString();
+  const snap = await db.collection('jobs')
+    .where('userId', '==', userId)
+    .where('status', '==', 'cancelled')
+    .where('createdAt', '>=', oneDayAgo)
+    .get();
+
+  if (snap.size >= CANCEL_BLOCK_THRESHOLD) {
+    // Auto-block user
+    await db.collection('users').doc(userId).update({
+      isBlocked: true,
+      blockReason: 'excessive_cancellations',
+      blockExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    return { blocked: true, reason: 'EXCESSIVE_CANCELLATIONS', cancellationsIn24h: snap.size };
+  }
+  return { blocked: false, cancellationsIn24h: snap.size };
+}
+
+// ─── Week 7: Duplicate Account Detection ─────────────────────────────────────
+
+async function checkDuplicateAccounts(phone, email) {
+  const flags = [];
+  if (phone) {
+    const phoneSnap = await db.collection('users').where('phone', '==', phone).get();
+    if (phoneSnap.size > 1) {
+      flags.push({ type: 'DUPLICATE_PHONE', phone, accountCount: phoneSnap.size });
+    }
+  }
+  if (email) {
+    const emailSnap = await db.collection('users').where('email', '==', email).get();
+    if (emailSnap.size > 1) {
+      flags.push({ type: 'DUPLICATE_EMAIL', email, accountCount: emailSnap.size });
+    }
+  }
+  return { hasDuplicates: flags.length > 0, flags };
+}
+
+// ─── Week 7: Auto Fraud Check (call on job create/complete) ──────────────────
+
+async function autoFraudCheck(jobData, userId, driverId) {
+  const [userStats, driverStats, velocity] = await Promise.all([
+    userId ? getUserFraudStats(userId) : Promise.resolve({}),
+    driverId ? getDriverFraudStats(driverId) : Promise.resolve({}),
+    userId ? checkVelocity(userId) : Promise.resolve({ suspicious: false }),
+  ]);
+
+  const result = calculateFraudScore(jobData, userStats, driverStats);
+
+  // Add velocity flag
+  if (velocity.suspicious) {
+    result.score += 2;
+    result.flags.push('RAPID_BOOKING');
+    result.shouldFlag = true;
+    if (result.score > SCORE_SUSPICIOUS) result.level = 'high_risk';
+    else if (result.score > SCORE_SAFE) result.level = 'suspicious';
+  }
+
+  // Auto-flag if needed
+  if (result.shouldFlag && jobData.id) {
+    await flagJob(jobData.id || 'unknown', result).catch(() => {});
+  }
+
+  return { ...result, velocity, userStats, driverStats };
+}
+
 module.exports = {
   calculateFraudScore, getUserFraudStats, getDriverFraudStats,
   flagJob, getFlaggedJobs, getFlaggedUsers, applyFraudPenalty,
   SCORE_SAFE, SCORE_SUSPICIOUS,
+  // Week 7 additions
+  checkVelocity, checkSuspiciousPayout, checkExcessiveCancellations,
+  checkDuplicateAccounts, autoFraudCheck,
 };

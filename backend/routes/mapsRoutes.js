@@ -3,6 +3,7 @@
  */
 
 const { Router } = require('express');
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   getRouteHandler,
   getDistanceMatrixHandler,
@@ -22,6 +23,6 @@ router.get('/geocode', geocodeHandler);
 router.get('/reverse-geocode', reverseGeocodeHandler);
 router.get('/polyline', getPolylineHandler);
 router.get('/status', mapsStatusHandler);
-router.post('/clear-cache', clearCacheHandler);
+router.post('/clear-cache', verifyToken, requireRole('admin'), clearCacheHandler);
 
 module.exports = router;

@@ -10,6 +10,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 const {
   getAdminDashboard,
   getDriverDashboard,
@@ -17,9 +18,9 @@ const {
   getGarageDashboard,
 } = require('../controllers/dashboardController');
 
-router.get('/admin', getAdminDashboard);
-router.get('/driver/:driverId', getDriverDashboard);
-router.get('/user/:userId', getUserDashboard);
-router.get('/garage/:garageId', getGarageDashboard);
+router.get('/admin', verifyToken, requireRole('admin'), getAdminDashboard);
+router.get('/driver/:driverId', verifyToken, getDriverDashboard);
+router.get('/user/:userId', verifyToken, getUserDashboard);
+router.get('/garage/:garageId', verifyToken, getGarageDashboard);
 
 module.exports = router;

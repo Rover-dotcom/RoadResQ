@@ -14,6 +14,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
+const { verifyToken, requireRole } = require('../middleware/auth');
 
 const {
   createGarageRequestHandler,
@@ -48,17 +49,17 @@ const submitEstimateValidation = [
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-router.post('/', createRequestValidation, createGarageRequestHandler);
-router.get('/', getGarageRequestsHandler);
-router.get('/:id', getGarageRequestByIdHandler);
-router.post('/:id/estimate', submitEstimateValidation, submitEstimateHandler);
-router.get('/:id/estimates', getEstimatesHandler);
+router.post('/', verifyToken, createRequestValidation, createGarageRequestHandler);
+router.get('/', verifyToken, getGarageRequestsHandler);
+router.get('/:id', verifyToken, getGarageRequestByIdHandler);
+router.post('/:id/estimate', verifyToken, requireRole('garage', 'admin'), submitEstimateValidation, submitEstimateHandler);
+router.get('/:id/estimates', verifyToken, getEstimatesHandler);
 router.put('/:id/accept', [
   body('estimateId').notEmpty().withMessage('estimateId is required'),
 ], acceptEstimateHandler);
 router.put('/:id/status', [
   body('status').notEmpty().withMessage('status is required'),
 ], updateGarageRequestStatusHandler);
-router.post('/:id/auto-cancel', autoCancelCheckHandler);
+router.post('/:id/auto-cancel', verifyToken, autoCancelCheckHandler);
 
 module.exports = router;

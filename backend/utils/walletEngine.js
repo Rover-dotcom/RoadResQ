@@ -1,25 +1,12 @@
 /**
- * Wallet Engine — RoadResQ (Week 6 v8.0.0)
+ * Wallet Engine — RoadResQ v9.0.0 (Week 6 base + Week 7 idempotency)
  *
  * Full double-entry ledger for drivers, customers, and garages.
  *
- * Every monetary action creates a wallet_transaction record.
- * Wallet balance = sum of all transactions (no running balance — computed).
- *
- * Transaction types:
- *   DEPOSIT     — user adds funds to wallet
- *   DEBIT       — payment deducted from wallet (customer pays for job)
- *   CREDIT      — payment credited to wallet (driver receives job payment)
- *   HOLD        — funds reserved for escrow (reduces available balance)
- *   RELEASE     — held funds credited to driver wallet
- *   REFUND      — held funds returned to customer wallet
- *   WITHDRAWAL  — driver withdraws to bank account
- *   BONUS       — admin grants bonus
- *   PENALTY     — admin deducts penalty
- *
- * Firestore collections:
- *   wallets              — { userId, role, availableBalance, heldBalance, totalEarned, totalSpent, currency, createdAt }
- *   wallet_transactions  — { walletId, type, amount, balanceBefore, balanceAfter, refJobId, reason, createdAt }
+ * Week 7 additions:
+ *   - Idempotency key support (prevents duplicate operations)
+ *   - Amount limits (max deposit QR 10,000, max withdrawal QR 5,000)
+ *   - checkIdempotency / saveIdempotencyKey helpers
  */
 
 const { db } = require('../config/firebase');
@@ -27,7 +14,38 @@ const { logEvent, EVENT_TYPES } = require('./auditEngine');
 
 const WALLETS_COL = 'wallets';
 const TRANSACTIONS_COL = 'wallet_transactions';
+const IDEMPOTENCY_COL = 'idempotency_keys';
 const CURRENCY = 'QAR';
+
+// ─── Week 7: Amount Limits ───────────────────────────────────────────────────
+const MAX_DEPOSIT    = 1000000;  // QR 10,000 in fils
+const MAX_WITHDRAWAL = 500000;   // QR 5,000 in fils
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ─── Week 7: Idempotency ────────────────────────────────────────────────────
+
+async function checkIdempotency(key) {
+  if (!key) return null;
+  const snap = await db.collection(IDEMPOTENCY_COL).doc(key).get();
+  if (!snap.exists) return null;
+  const data = snap.data();
+  // Check TTL
+  const age = Date.now() - new Date(data.createdAt).getTime();
+  if (age > IDEMPOTENCY_TTL_MS) {
+    await db.collection(IDEMPOTENCY_COL).doc(key).delete();
+    return null;
+  }
+  return data.result;
+}
+
+async function saveIdempotencyKey(key, result) {
+  if (!key) return;
+  await db.collection(IDEMPOTENCY_COL).doc(key).set({
+    result,
+    createdAt: new Date().toISOString(),
+  });
+}
+
 
 // ─── Get or Create Wallet ────────────────────────────────────────────────────
 
@@ -190,7 +208,16 @@ async function writeTransaction(userId, type, amount, reason, refJobId = null) {
 /**
  * Add funds to a wallet (customer tops up).
  */
-async function depositFunds(userId, amount, reason = 'Wallet top-up') {
+async function depositFunds(userId, amount, reason = 'Wallet top-up', idempotencyKey = null) {
+  // Week 7: Amount limit
+  if (amount > MAX_DEPOSIT) {
+    throw new Error(`Deposit exceeds maximum of QR ${(MAX_DEPOSIT / 100).toFixed(2)}`);
+  }
+
+  // Week 7: Idempotency check
+  const cached = await checkIdempotency(idempotencyKey);
+  if (cached) return { ...cached, idempotent: true };
+
   await getOrCreateWallet(userId);
   const txn = await writeTransaction(userId, 'DEPOSIT', amount, reason);
 
@@ -200,6 +227,9 @@ async function depositFunds(userId, amount, reason = 'Wallet top-up') {
     actorId: userId,
     details: { type: 'DEPOSIT', amount, reason },
   });
+
+  // Week 7: Save idempotency key
+  await saveIdempotencyKey(idempotencyKey, txn);
 
   return txn;
 }
@@ -308,8 +338,19 @@ async function refundToCustomer(customerId, amount, refJobId, reason = 'Refund')
 /**
  * Withdraw funds from driver wallet to bank account.
  */
-async function withdrawFunds(userId, amount, reason = 'Payout to bank') {
+async function withdrawFunds(userId, amount, reason = 'Payout to bank', idempotencyKey = null) {
+  // Week 7: Amount limit
+  if (amount > MAX_WITHDRAWAL) {
+    throw new Error(`Withdrawal exceeds maximum of QR ${(MAX_WITHDRAWAL / 100).toFixed(2)}`);
+  }
+
+  // Week 7: Idempotency check
+  const cached = await checkIdempotency(idempotencyKey);
+  if (cached) return { ...cached, idempotent: true };
+
   const txn = await writeTransaction(userId, 'WITHDRAWAL', amount, reason);
+
+  await saveIdempotencyKey(idempotencyKey, txn);
   return txn;
 }
 
@@ -370,4 +411,9 @@ module.exports = {
   getWalletBalance,
   getTransactionHistory,
   getAllWallets,
+  // Week 7
+  checkIdempotency,
+  saveIdempotencyKey,
+  MAX_DEPOSIT,
+  MAX_WITHDRAWAL,
 };
