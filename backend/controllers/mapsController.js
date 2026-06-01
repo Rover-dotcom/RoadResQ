@@ -1,11 +1,14 @@
 /**
- * Maps Controller — RoadResQ (Week 6 v8.0.0)
+ * Maps Controller — RoadResQ (Week 8 v9.1.0)
  *
  * GET  /api/maps/route          — route distance, ETA, polyline
  * GET  /api/maps/distance-matrix — batch distance calculation
  * GET  /api/maps/geocode         — address to lat/lng
  * GET  /api/maps/reverse-geocode — lat/lng to address
  * GET  /api/maps/polyline        — encoded polyline for map drawing
+ * GET  /api/maps/autocomplete    — address search suggestions (Week 8)
+ * GET  /api/maps/place-details   — place details by Place ID (Week 8)
+ * GET  /api/maps/driver-eta      — ETA from driver to pickup (Week 8)
  * GET  /api/maps/status          — Google Maps API status
  * POST /api/maps/clear-cache     — clear route cache
  */
@@ -18,6 +21,9 @@ const {
   getPolyline,
   checkMapsStatus,
   clearCache,
+  placesAutocomplete,
+  getPlaceDetails,
+  getDriverETA,
 } = require('../utils/mapsEngine');
 
 const ok = (res, data) => res.json({ status: 'success', data });
@@ -135,6 +141,59 @@ async function getPolylineHandler(req, res) {
   }
 }
 
+// GET /api/maps/autocomplete?input=The Pe
+async function autocompleteHandler(req, res) {
+  try {
+    const { input } = req.query;
+    if (!input || input.length < 2) return fail(res, 'input must be at least 2 characters.');
+
+    const predictions = await placesAutocomplete(input);
+    if (predictions.error) return fail(res, predictions.error);
+
+    return ok(res, { predictions, count: Array.isArray(predictions) ? predictions.length : 0 });
+  } catch (err) {
+    console.error('[Maps] Autocomplete error:', err);
+    return fail(res, err.message, 500);
+  }
+}
+
+// GET /api/maps/place-details?placeId=ChIJ...
+async function placeDetailsHandler(req, res) {
+  try {
+    const { placeId } = req.query;
+    if (!placeId) return fail(res, 'placeId query param is required.');
+
+    const result = await getPlaceDetails(placeId);
+    if (!result) return fail(res, 'Could not find place details.', 404);
+    if (result.error) return fail(res, result.error);
+
+    return ok(res, result);
+  } catch (err) {
+    console.error('[Maps] Place details error:', err);
+    return fail(res, err.message, 500);
+  }
+}
+
+// GET /api/maps/driver-eta?driverLat=&driverLng=&pickupLat=&pickupLng=
+async function driverETAHandler(req, res) {
+  try {
+    const { driverLat, driverLng, pickupLat, pickupLng } = req.query;
+    if (!driverLat || !driverLng || !pickupLat || !pickupLng) {
+      return fail(res, 'driverLat, driverLng, pickupLat, pickupLng are required.');
+    }
+
+    const eta = await getDriverETA(
+      { lat: parseFloat(driverLat), lng: parseFloat(driverLng) },
+      { lat: parseFloat(pickupLat), lng: parseFloat(pickupLng) }
+    );
+
+    return ok(res, eta);
+  } catch (err) {
+    console.error('[Maps] Driver ETA error:', err);
+    return fail(res, err.message, 500);
+  }
+}
+
 // GET /api/maps/status
 async function mapsStatusHandler(_req, res) {
   try {
@@ -163,6 +222,10 @@ module.exports = {
   geocodeHandler,
   reverseGeocodeHandler,
   getPolylineHandler,
+  autocompleteHandler,
+  placeDetailsHandler,
+  driverETAHandler,
   mapsStatusHandler,
   clearCacheHandler,
 };
+

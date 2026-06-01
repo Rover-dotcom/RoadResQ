@@ -1,0 +1,185 @@
+{
+  "info": {
+    "name": "RoadResQ API v9.1.0 — Week 8",
+    "description": "New features: Saved Vehicles, History/Earnings, Dispute Evidence, Google Maps Production Integration. All endpoints require Bearer token (except health check + maps status).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "authToken", "value": "" },
+    { "key": "userId", "value": "test-user-001" },
+    { "key": "driverId", "value": "test-driver-001" },
+    { "key": "garageId", "value": "test-garage-001" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET / (Health + All Endpoints)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/", "auth": { "type": "noauth" } }
+        }
+      ]
+    },
+    {
+      "name": "Week 8 — Saved Vehicles",
+      "item": [
+        {
+          "name": "POST Save Vehicle",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": { "mode": "raw", "raw": "{\"make\": \"Toyota\", \"model\": \"Hilux\", \"year\": 2023, \"plateNumber\": \"QA-12345\", \"color\": \"White\", \"vehicleType\": \"Pickup\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "POST Save Vehicle (2nd car)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": { "mode": "raw", "raw": "{\"make\": \"Nissan\", \"model\": \"Patrol\", \"year\": 2024, \"plateNumber\": \"QA-67890\", \"color\": \"Black\", \"vehicleType\": \"SUV\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "GET My Vehicles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/vehicles" }
+        },
+        {
+          "name": "PUT Update Vehicle Color",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/vehicle-id-here",
+            "body": { "mode": "raw", "raw": "{\"color\": \"Silver\", \"notes\": \"Dent on rear bumper\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "PUT Set Default Vehicle",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/vehicles/vehicle-id-here/default" }
+        },
+        {
+          "name": "DELETE Remove Vehicle",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/vehicles/vehicle-id-here" }
+        }
+      ]
+    },
+    {
+      "name": "Week 8 — Booking & Earnings History",
+      "item": [
+        {
+          "name": "GET Customer Booking History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/bookings?limit=50" }
+        },
+        {
+          "name": "GET Driver Earnings (today)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-earnings/{{driverId}}?period=today" }
+        },
+        {
+          "name": "GET Driver Earnings (week)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-earnings/{{driverId}}?period=week" }
+        },
+        {
+          "name": "GET Driver Earnings (month)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-earnings/{{driverId}}?period=month" }
+        },
+        {
+          "name": "GET Driver Earnings (all time)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-earnings/{{driverId}}?period=all" }
+        },
+        {
+          "name": "GET Driver Performance Metrics",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-performance/{{driverId}}" }
+        },
+        {
+          "name": "GET Garage Repair History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/garage-repairs/{{garageId}}" }
+        },
+        {
+          "name": "POST Auto-Offline Check (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/history/auto-offline" }
+        }
+      ]
+    },
+    {
+      "name": "Week 8 — Dispute Evidence & Escrow",
+      "item": [
+        {
+          "name": "PUT Upload Evidence (photos + notes)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/disputes/dispute-id-here/evidence",
+            "body": { "mode": "raw", "raw": "{\"photoUrls\": [\"https://storage.example.com/evidence1.jpg\", \"https://storage.example.com/evidence2.jpg\"], \"notes\": \"Driver did not arrive at location, waited 30 minutes\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "PUT Upload Evidence (chat logs)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/disputes/dispute-id-here/evidence",
+            "body": { "mode": "raw", "raw": "{\"chatLogs\": [\"Customer: Where are you?\", \"Driver: I am coming\", \"Customer: It has been 20 minutes\"]}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "GET Dispute Timeline",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/disputes/dispute-id-here/timeline" }
+        },
+        {
+          "name": "POST Hold Escrow (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/disputes/dispute-id-here/hold-escrow" }
+        }
+      ]
+    },
+    {
+      "name": "Week 8 — Google Maps (Production)",
+      "item": [
+        {
+          "name": "GET Maps Status (check API key)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/status", "auth": { "type": "noauth" } }
+        },
+        {
+          "name": "GET Route (Pearl → Hamad Airport)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/route?originLat=25.3680&originLng=51.5501&destLat=25.2609&destLng=51.6138" }
+        },
+        {
+          "name": "GET Route (West Bay → Lusail)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/route?originLat=25.3234&originLng=51.5310&destLat=25.4100&destLng=51.4900" }
+        },
+        {
+          "name": "GET Distance Matrix (batch)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/distance-matrix?origins=25.3680,51.5501|25.3234,51.5310&destinations=25.2609,51.6138" }
+        },
+        {
+          "name": "GET Geocode (The Pearl)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/geocode?address=The Pearl, Doha, Qatar" }
+        },
+        {
+          "name": "GET Reverse Geocode (lat/lng to address)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/reverse-geocode?lat=25.3680&lng=51.5501" }
+        },
+        {
+          "name": "GET Polyline (for map drawing)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/polyline?originLat=25.3680&originLng=51.5501&destLat=25.2609&destLng=51.6138" }
+        },
+        {
+          "name": "GET Autocomplete (address search)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/autocomplete?input=The Pearl" }
+        },
+        {
+          "name": "GET Place Details (by Place ID)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/place-details?placeId=ChIJrTLr-GyuEmsRBfy61i59si0" }
+        },
+        {
+          "name": "GET Driver ETA to Pickup",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/maps/driver-eta?driverLat=25.3680&driverLng=51.5501&pickupLat=25.2609&pickupLng=51.6138" }
+        },
+        {
+          "name": "POST Clear Maps Cache (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/maps/clear-cache" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 /**
- * RoadResQ — Express Server v9.0.0 (Week 7: Security + Performance + Production Ready)
+ * RoadResQ — Express Server v9.1.0 (Week 8: Google Maps Production + New Features)
  *
  * Runs locally (node server.js) or is deployed as a Firebase Cloud Function
  * via functions/index.js.
@@ -131,7 +131,7 @@ app.use('/api/history', historyRoutes);                 // Week 7: earnings/book
 app.get('/', (_req, res) => {
   res.json({
     service: 'RoadResQ API',
-    version: '9.0.0',
+    version: '9.1.0',
     status: 'running',
     project: 'roadresq-bd6b0',
     region: 'me-central1 (Doha, Qatar)',
@@ -141,6 +141,11 @@ app.get('/', (_req, res) => {
       rateLimiting: 'General 100/min, Auth 10/min, Jobs 5/min',
       headers: 'Helmet (XSS, CSRF, Clickjacking)',
       idempotency: 'Idempotency-Key header on payments',
+    },
+    googleMaps: {
+      status: process.env.GOOGLE_MAPS_API_KEY ? 'ACTIVE (production key)' : 'FALLBACK (Haversine)',
+      apis: 'Directions, Distance Matrix, Geocoding, Places Autocomplete',
+      cache: '5-minute in-memory cache',
     },
     endpoints: {
       auth: '/api/auth',

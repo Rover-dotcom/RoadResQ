@@ -1,17 +1,23 @@
 /**
- * Maps Engine — RoadResQ (Week 6 v8.0.0)
+ * Maps Engine — RoadResQ (Week 8 v9.1.0)
  *
  * Google Maps integration layer with automatic fallback.
  *
- * When GOOGLE_MAPS_API_KEY is set:
+ * When GOOGLE_MAPS_API_KEY is set (Week 8: now using production key):
  *   → Uses Google Distance Matrix, Directions, Geocoding APIs
  *   → Returns real road distances, durations, polylines
+ *   → Traffic-aware ETAs with departure_time=now
  *
  * When GOOGLE_MAPS_API_KEY is NOT set:
  *   → Falls back to Haversine formula + 1.3x road factor
  *   → Still returns usable data for all endpoints
  *
  * All responses are cached for 5 minutes to reduce API quota usage.
+ *
+ * API Keys (from Google Cloud Console — blackburnxprojects@gmail.com):
+ *   Browser Key: Used here for server-side API calls
+ *   iOS Key:     Used in Flutter iOS app (AppDelegate.swift)
+ *   Android Key: Used in Flutter Android app (AndroidManifest.xml)
  */
 
 const https = require('https');
@@ -21,6 +27,14 @@ const https = require('https');
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || null;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EARTH_RADIUS_KM = 6371;
+
+// Startup log: show Maps mode
+if (GOOGLE_MAPS_API_KEY) {
+  const masked = GOOGLE_MAPS_API_KEY.slice(0, 10) + '...' + GOOGLE_MAPS_API_KEY.slice(-4);
+  console.log(`[Maps] ✅ Google Maps API active (key: ${masked})`);
+} else {
+  console.log('[Maps] ⚠️  No API key — using Haversine fallback for all calculations');
+}
 
 // Simple in-memory cache
 const cache = new Map();
@@ -381,6 +395,110 @@ function clearCache() {
   return { cleared: size };
 }
 
+/**
+ * Places Autocomplete — for address search bar in the app.
+ * Returns up to 5 suggestions biased toward Qatar.
+ *
+ * @param {string} input — partial address typed by user
+ * @returns {Promise<Array<{ description, placeId, mainText, secondaryText }>>}
+ */
+async function placesAutocomplete(input) {
+  const cacheKey = `autocomplete:${input.toLowerCase().trim()}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    return { error: 'Google Maps API key required for Places Autocomplete.', method: 'unavailable' };
+  }
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&components=country:qa&types=geocode|establishment&language=en`;
+    const response = await googleApiRequest(url);
+
+    if (response.status === 'OK') {
+      const predictions = response.predictions.map(p => ({
+        description: p.description,
+        placeId: p.place_id,
+        mainText: p.structured_formatting?.main_text || p.description,
+        secondaryText: p.structured_formatting?.secondary_text || '',
+        types: p.types,
+      }));
+      setCache(cacheKey, predictions);
+      return predictions;
+    }
+
+    return [];
+  } catch (err) {
+    console.warn('[Maps] Places Autocomplete failed:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Get place details by Place ID — returns lat/lng, address, name, phone.
+ *
+ * @param {string} placeId — Google Place ID
+ * @returns {Promise<object|null>}
+ */
+async function getPlaceDetails(placeId) {
+  const cacheKey = `place:${placeId}`;
+  const cached = getCached(cacheKey);
+  if (cached) return { ...cached, fromCache: true };
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    return { error: 'Google Maps API key required for Place Details.', method: 'unavailable' };
+  }
+
+  try {
+    const fields = 'geometry,formatted_address,name,place_id,types,formatted_phone_number,opening_hours,rating';
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${GOOGLE_MAPS_API_KEY}`;
+    const response = await googleApiRequest(url);
+
+    if (response.status === 'OK' && response.result) {
+      const r = response.result;
+      const result = {
+        lat: r.geometry?.location?.lat,
+        lng: r.geometry?.location?.lng,
+        formattedAddress: r.formatted_address,
+        name: r.name,
+        placeId: r.place_id,
+        types: r.types,
+        phone: r.formatted_phone_number || null,
+        rating: r.rating || null,
+        isOpen: r.opening_hours?.open_now || null,
+        method: 'google_place_details',
+      };
+      setCache(cacheKey, result);
+      return result;
+    }
+
+    return null;
+  } catch (err) {
+    console.warn('[Maps] Place Details failed:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Get ETA from driver to pickup — used by dispatch engine.
+ * Returns minutes and distance in km.
+ *
+ * @param {{ lat, lng }} driverLocation
+ * @param {{ lat, lng }} pickupLocation
+ * @returns {Promise<{ etaMinutes, distanceKm, method }>}
+ */
+async function getDriverETA(driverLocation, pickupLocation) {
+  const route = await getRoute(driverLocation, pickupLocation);
+  return {
+    etaMinutes: route.durationMinutes,
+    etaText: route.durationText,
+    distanceKm: route.distanceKm,
+    distanceText: route.distanceText,
+    trafficCondition: route.trafficCondition,
+    method: route.method,
+  };
+}
+
 module.exports = {
   getRoute,
   getDistanceMatrix,
@@ -389,8 +507,12 @@ module.exports = {
   getPolyline,
   checkMapsStatus,
   clearCache,
+  placesAutocomplete,
+  getPlaceDetails,
+  getDriverETA,
   // Expose internals for other engines
   haversineDistanceKm,
   isQatarPeakHour,
   fallbackRoute,
 };
+
