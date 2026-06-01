@@ -39,6 +39,8 @@ const mapsRoutes = require('./routes/mapsRoutes');                 // Week 6 v8:
 const notificationRoutes = require('./routes/notificationRoutes'); // Week 7 v9: push notifications
 const savedLocationRoutes = require('./routes/savedLocationRoutes'); // Week 7 v9: saved locations
 const adminRoutes = require('./routes/adminRoutes');                 // Week 7 v9: admin backup/system
+const vehicleRoutes = require('./routes/vehicleRoutes');             // Week 7 v9: saved vehicles
+const historyRoutes = require('./routes/historyRoutes');             // Week 7 v9: earnings/booking/repair history
 
 const app = express();
 
@@ -121,6 +123,8 @@ app.use('/api/maps', mapsRoutes);                 // Google Maps integration
 app.use('/api/notifications', notificationRoutes); // Week 7: push notifications
 app.use('/api/saved-locations', savedLocationRoutes); // Week 7: saved locations
 app.use('/api/admin', adminRoutes);                    // Week 7: admin backup/system
+app.use('/api/vehicles', vehicleRoutes);                // Week 7: customer saved vehicles
+app.use('/api/history', historyRoutes);                 // Week 7: earnings/booking/repair history
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
@@ -158,6 +162,9 @@ app.get('/', (_req, res) => {
       fraud: '/api/fraud',
       disputes: '/api/disputes',
       incidents: '/api/incidents',
+      vehicles: '/api/vehicles',
+      history: '/api/history',
+      admin: '/api/admin',
       integration: '/api/test',
     },
   });

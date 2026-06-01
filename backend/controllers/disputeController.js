@@ -183,4 +183,86 @@ const resolveDispute = async (req, res) => {
   }
 };
 
-module.exports = { submitDispute, getDisputes, getDisputeDetail, getMyDisputes, resolveDispute };
+// ─── PUT /api/disputes/:id/evidence ───────────────────────────────────────────
+// Add evidence (photo URLs, notes, chat logs) to a dispute
+const addEvidence = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dispute = await getDisputeById(id);
+    if (!dispute) return fail(res, 'Dispute not found.', 404);
+
+    const { photoUrls, notes, chatLogs } = req.body;
+    if (!photoUrls && !notes && !chatLogs) {
+      return fail(res, 'Provide photoUrls, notes, or chatLogs.');
+    }
+
+    const existingEvidence = dispute.evidence || {};
+    const updatedEvidence = {
+      ...existingEvidence,
+      photoUrls: [...(existingEvidence.photoUrls || []), ...(photoUrls || [])],
+      notes: [...(existingEvidence.notes || []), ...(notes ? [{ text: notes, addedAt: new Date().toISOString(), addedBy: req.user?.uid || 'unknown' }] : [])],
+      chatLogs: [...(existingEvidence.chatLogs || []), ...(chatLogs || [])],
+      photosUploaded: true,
+      lastUpdatedAt: new Date().toISOString(),
+    };
+
+    // Add to timeline
+    const timeline = dispute.timeline || [];
+    timeline.push({
+      action: 'evidence_added',
+      addedBy: req.user?.uid || 'unknown',
+      timestamp: new Date().toISOString(),
+      details: `Added ${(photoUrls || []).length} photos, ${notes ? '1 note' : '0 notes'}`,
+    });
+
+    const updated = await updateDispute(id, { evidence: updatedEvidence, timeline });
+    return success(res, { dispute: updated });
+  } catch (err) {
+    return fail(res, 'Failed to add evidence.', 500);
+  }
+};
+
+// ─── GET /api/disputes/:id/timeline ───────────────────────────────────────────
+const getDisputeTimeline = async (req, res) => {
+  try {
+    const dispute = await getDisputeById(req.params.id);
+    if (!dispute) return fail(res, 'Dispute not found.', 404);
+    return success(res, { timeline: dispute.timeline || [], disputeId: req.params.id });
+  } catch (err) {
+    return fail(res, 'Failed to get timeline.', 500);
+  }
+};
+
+// ─── POST /api/disputes/:id/hold-escrow ───────────────────────────────────────
+// Place funds in escrow during dispute
+const holdEscrowForDispute = async (req, res) => {
+  try {
+    const dispute = await getDisputeById(req.params.id);
+    if (!dispute) return fail(res, 'Dispute not found.', 404);
+
+    // Mark as escrow held
+    const timeline = dispute.timeline || [];
+    timeline.push({
+      action: 'escrow_held',
+      addedBy: req.user?.uid || 'admin',
+      timestamp: new Date().toISOString(),
+      details: 'Funds held in escrow pending dispute resolution',
+    });
+
+    const updated = await updateDispute(req.params.id, {
+      escrowHeld: true,
+      escrowHeldAt: new Date().toISOString(),
+      escrowHeldBy: req.user?.uid || 'admin',
+      timeline,
+    });
+
+    return success(res, { dispute: updated, message: 'Escrow held for dispute.' });
+  } catch (err) {
+    return fail(res, 'Failed to hold escrow.', 500);
+  }
+};
+
+module.exports = {
+  submitDispute, getDisputes, getDisputeDetail, getMyDisputes, resolveDispute,
+  addEvidence, getDisputeTimeline, holdEscrowForDispute,
+};

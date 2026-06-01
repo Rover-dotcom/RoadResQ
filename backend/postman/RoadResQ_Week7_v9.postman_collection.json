@@ -159,6 +159,89 @@
           "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/login", "auth": { "type": "noauth" }, "body": { "mode": "raw", "raw": "{\"phone\": \"+97400000000\"}", "options": { "raw": { "language": "json" } } } }
         }
       ]
+    },
+    {
+      "name": "Week 7 — Saved Vehicles",
+      "item": [
+        {
+          "name": "POST Save Vehicle",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": { "mode": "raw", "raw": "{\"make\": \"Toyota\", \"model\": \"Hilux\", \"year\": 2023, \"plateNumber\": \"QA-12345\", \"color\": \"White\", \"vehicleType\": \"Pickup\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "GET My Vehicles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/vehicles" }
+        },
+        {
+          "name": "PUT Update Vehicle",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/vehicle-id-here",
+            "body": { "mode": "raw", "raw": "{\"color\": \"Black\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "PUT Set Default Vehicle",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/vehicles/vehicle-id-here/default" }
+        },
+        {
+          "name": "DELETE Remove Vehicle",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/vehicles/vehicle-id-here" }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — History & Earnings",
+      "item": [
+        {
+          "name": "GET Booking History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/bookings?limit=50" }
+        },
+        {
+          "name": "GET Driver Earnings (today)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-earnings/{{driverId}}?period=today" }
+        },
+        {
+          "name": "GET Driver Earnings (month)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-earnings/{{driverId}}?period=month" }
+        },
+        {
+          "name": "GET Driver Performance",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/driver-performance/{{driverId}}" }
+        },
+        {
+          "name": "GET Garage Repair History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/history/garage-repairs/garage-id-here" }
+        },
+        {
+          "name": "POST Auto-Offline Check (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/history/auto-offline" }
+        }
+      ]
+    },
+    {
+      "name": "Week 7 — Dispute Evidence & Escrow",
+      "item": [
+        {
+          "name": "PUT Add Evidence to Dispute",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/disputes/dispute-id-here/evidence",
+            "body": { "mode": "raw", "raw": "{\"photoUrls\": [\"https://storage.example.com/evidence1.jpg\"], \"notes\": \"Driver did not show up at pickup location\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "GET Dispute Timeline",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/disputes/dispute-id-here/timeline" }
+        },
+        {
+          "name": "POST Hold Escrow (Admin)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/disputes/dispute-id-here/hold-escrow" }
+        }
+      ]
     }
   ]
 }

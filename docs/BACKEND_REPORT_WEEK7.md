@@ -181,7 +181,7 @@
 ### 14. Server Infrastructure Upgrade
 
 - Version bumped to v9.0.0
-- 22 route modules mounted (up from 18)
+- 24 route modules mounted (up from 18)
 - Health check response includes security info (auth, RBAC, rate limiting, helmet, idempotency)
 - Global error handler replaced inline error handler with centralized `globalErrorHandler`
 
@@ -191,10 +191,93 @@
 
 ### 15. Postman Collection
 
-- New Week 7 collection with 16 requests covering all new endpoints
-- Includes notifications, saved locations, admin backup, fraud upgrades, wallet idempotency, rate limit testing
+- Week 7 collection with 30+ requests covering all new endpoints
+- Includes notifications, saved locations, admin backup, fraud upgrades, wallet idempotency, saved vehicles, history/earnings, dispute evidence, rate limit testing
 
 **File:** `backend/postman/RoadResQ_Week7_v9.postman_collection.json` — [NEW]
+
+---
+
+### 16. Customer Saved Vehicles (Multiple Cars)
+
+- Customers can save up to 10 vehicles per account
+- Each vehicle stores: make, model, year, plate number, color, vehicle type, notes
+- Duplicate plate number protection per user
+- Default vehicle system: first vehicle auto-set as default, can be changed via set-default endpoint
+- If the default vehicle is deleted, the oldest remaining vehicle becomes default
+- Ownership check: users can only modify their own vehicles, admin can modify any
+
+**Files:**
+- `backend/controllers/vehicleController.js` — [NEW] 5 endpoints (CRUD + set-default)
+- `backend/routes/vehicleRoutes.js` — [NEW] POST /, GET /, PUT /:id, DELETE /:id, PUT /:id/default
+
+---
+
+### 17. Auto Driver Offline Status
+
+- System automatically sets drivers to offline if they have not sent a GPS update in 5 minutes
+- Admin can trigger the check via `POST /api/history/auto-offline` (designed to run on a scheduled cron)
+- When auto-offlined, the driver document records the reason (`inactivity`) and timestamp
+- Returns count of checked vs offlined drivers
+
+**File:** `backend/utils/autoDriverEngine.js` — [NEW]
+
+---
+
+### 18. Driver Earnings History
+
+- Drivers can view their earnings filtered by period: today, week, month, or all time
+- Returns total earnings in fils and QR display, transaction count, and full transaction list
+- Only the driver themselves or admin can view earnings (ownership check)
+
+**Files:**
+- `backend/utils/autoDriverEngine.js` — getDriverEarnings()
+- `backend/controllers/historyController.js` — [NEW]
+- `backend/routes/historyRoutes.js` — [NEW] GET /driver-earnings/:id?period=today
+
+---
+
+### 19. Driver Performance Metrics
+
+- Returns: total jobs, completed, cancelled, acceptance rate %, cancellation rate %, average rating, average response time (seconds), today's earnings
+- Calculated from live Firestore data
+
+**Files:**
+- `backend/utils/autoDriverEngine.js` — getDriverPerformance()
+- `backend/routes/historyRoutes.js` — GET /driver-performance/:id
+
+---
+
+### 20. Booking History (Customer) & Garage Repair History
+
+- Customers can view their full booking history (last 50 jobs by default) with service type, status, fare, driver name, rating
+- Garages can view their repair history with status, cost, customer info
+- Both enforce ownership: users see only their own data
+
+**Files:**
+- `backend/utils/autoDriverEngine.js` — getBookingHistory(), getGarageRepairHistory()
+- `backend/routes/historyRoutes.js` — GET /bookings, GET /garage-repairs/:id
+
+---
+
+### 21. Dispute System Finalization — Evidence Upload, Timeline, Escrow Hold
+
+- **Evidence upload:** Users can add photo URLs, text notes, and chat logs to an existing dispute. Evidence is appended (not replaced), supporting multiple submissions
+- **Timeline tracking:** Every action (evidence added, escrow held, resolved) is logged in a timeline array with timestamp and actor
+- **Escrow hold:** Admin can hold funds in escrow during a dispute to prevent premature payout
+
+**Files:**
+- `backend/controllers/disputeController.js` — Modified (+3 functions: addEvidence, getDisputeTimeline, holdEscrowForDispute)
+- `backend/routes/disputeRoutes.js` — Modified (+3 routes: PUT /:id/evidence, GET /:id/timeline, POST /:id/hold-escrow)
+
+---
+
+### 22. Firestore Indexes Updated
+
+- Added 12 new composite indexes for Week 7 collections
+- Covers: saved_vehicles, notifications, saved_locations, wallet_transactions (earnings filter), drivers (online status), idempotency_keys, backup_logs, disputes (reporterId), garage_requests
+
+**File:** `firestore.indexes.json` — Modified (29 total indexes)
 
 ---
 
@@ -204,6 +287,7 @@
 |---|---|
 | `notifications` | In-app notifications (push + stored) |
 | `saved_locations` | Customer saved addresses |
+| `saved_vehicles` | Customer saved cars (max 10) |
 | `backup_logs` | Backup execution history |
 | `idempotency_keys` | Payment deduplication (24h TTL) |
 
@@ -224,7 +308,7 @@
 
 | Area | Before (Week 6) | After (Week 7) |
 |---|---|---|
-| Routes with auth | 6/20 (30%) | 20/20 (100%) |
+| Routes with auth | 6/20 (30%) | 24/24 (100%) |
 | Admin routes locked | 2 | 14 |
 | Rate limiting | Broken (in-memory, serverless) | express-rate-limit (3 tiers) |
 | Security headers | None | Helmet (XSS, clickjacking, MIME) |
@@ -232,3 +316,6 @@
 | Error handling | Inline per-route | Centralized globalErrorHandler |
 | Logging | console.log | Winston structured JSON |
 | Fraud detection | Score-based only | +Velocity, +Cancellation blocks, +Duplicate detection |
+| Dispute evidence | No upload system | Photo/note/chat evidence with timeline |
+| Driver auto-offline | Manual only | Auto-offline after 5 min inactivity |
+
