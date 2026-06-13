@@ -1,14 +1,18 @@
 /**
- * Admin Routes — RoadResQ v9.0.0 (Week 7)
+ * Admin Routes — RoadResQ v9.1.0 (Week 8)
  *
- * POST /api/admin/backup        — Run full Firestore backup
- * GET  /api/admin/backup/history — Get backup history
- * GET  /api/admin/backup/latest  — Get latest backup
- * GET  /api/admin/system-info    — System info
+ * POST /api/admin/backup          — Run full Firestore backup
+ * GET  /api/admin/backup/history  — Get backup history
+ * GET  /api/admin/backup/latest   — Get latest backup
+ * GET  /api/admin/system-info     — System info
+ * GET  /api/admin/report          — Full system report (HTML, printable)
+ * GET  /api/admin/report?download=true — Download as HTML file
+ * GET  /api/admin/report/json     — Report data as JSON (for mobile app)
  */
 const { Router } = require('express');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const { runFullBackup, getBackupHistory, getLatestBackup } = require('../utils/backupEngine');
+const { generateReport, generateReportJSON } = require('../controllers/reportController');
 
 const router = Router();
 
@@ -43,7 +47,7 @@ router.get('/system-info', verifyToken, requireRole('admin'), async (_req, res) 
   res.json({
     status: 'success',
     data: {
-      version: '9.0.0',
+      version: '9.1.0',
       environment: process.env.NODE_ENV || 'development',
       uptime: `${(process.uptime() / 60).toFixed(1)} minutes`,
       memoryUsage: {
@@ -53,8 +57,16 @@ router.get('/system-info', verifyToken, requireRole('admin'), async (_req, res) 
       },
       nodeVersion: process.version,
       platform: process.platform,
+      googleMaps: process.env.GOOGLE_MAPS_API_KEY ? 'Active' : 'Fallback',
     },
   });
 });
 
+// Admin Report — HTML (viewable + downloadable)
+router.get('/report', verifyToken, requireRole('admin'), generateReport);
+
+// Admin Report — JSON (for mobile app)
+router.get('/report/json', verifyToken, requireRole('admin'), generateReportJSON);
+
 module.exports = router;
+

@@ -17,6 +17,9 @@ ios/.symlinks/
 *.tmp
 *.swp
 .DS_Store
+.cursor/
+.postman/
+ios_backup/
 
 # ─── STRICTLY EXCLUDED ───────────────────────────────────────────────────────
 
