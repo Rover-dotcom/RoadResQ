@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/provider/quote_provider.dart';
 import 'inquiry_state_model.dart';
 import 'inquiry_sub_screens.dart';
 
@@ -116,7 +119,19 @@ class _IndustrialInquiryWizardState extends State<IndustrialInquiryWizard> {
           InquiryContactScreen(data: _flowData, onContinue: _advance, onBack: _regress),
           InquiryScheduleScreen(data: _flowData, onContinue: _advance, onBack: _regress),
           InquiryVehicleSelectionScreen(data: _flowData, onContinue: _advance, onBack: _regress),
-          InquiryReviewScreen(data: _flowData, onContinue: _advance, onBack: _regress),
+          InquiryReviewScreen(data: _flowData, onContinue: () async {
+            // Submit real quote request to Firestore
+            final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+            final quoteProvider = Provider.of<QuoteProvider>(context, listen: false);
+            await quoteProvider.submitQuoteRequest(
+              userId: userId,
+              itemType: _flowData.itemType,
+              description: _flowData.requirementDescription,
+              pickup: _flowData.pickupLocation,
+              drop: _flowData.dropoffLocation,
+            );
+            _advance();
+          }, onBack: _regress),
           InquiryPriceAcceptanceScreen(data: _flowData, onContinue: _advance, onBack: _regress),
           InquiryDriverAssignmentScreen(onDriverAssigned: _advance),
           InquiryJobProgressScreen(onJobCompleted: widget.onExitFlow),

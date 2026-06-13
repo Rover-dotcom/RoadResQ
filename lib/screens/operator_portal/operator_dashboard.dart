@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'job_accepted.dart'; // Make sure this path matches your file structure
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/provider/driver_provider.dart';
+import 'package:road_resq/provider/job_provider.dart';
+import 'package:road_resq/models/job_model.dart';
+import 'job_accepted.dart';
 
 class OperatorDashboard extends StatefulWidget {
   const OperatorDashboard({super.key});
@@ -9,59 +14,85 @@ class OperatorDashboard extends StatefulWidget {
 }
 
 class _OperatorDashboardState extends State<OperatorDashboard> {
-  bool _isOnline = true;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Mock incoming requests data
-  final List<Map<String, dynamic>> _incomingRequests = [
-    {
-      "id": "JOB-9821",
-      "customer": "Ahmed Al-Thani",
-      "issue": "Flat Tire - Flatbed Required",
-      "location": "West Bay, Doha",
-      "distance": "2.4 km"
-    },
-    {
-      "id": "JOB-4412",
-      "customer": "Sarah Connor",
-      "issue": "Engine Overheat - Hook & Chain",
-      "location": "Mesaieed Industrial City",
-      "distance": "12.8 km"
-    }
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _initDriverData();
+  }
+
+  void _initDriverData() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+
+    // Load driver profile from Firestore
+    driverProvider.loadDriverProfile(uid);
+    // Listen to real-time driver profile updates
+    driverProvider.listenToDriverProfile(uid);
+    // Listen to available jobs matching driver's vehicle type
+    // (will start streaming once profile is loaded)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vehicleType = driverProvider.vehicleType ?? '';
+      if (vehicleType.isNotEmpty) {
+        jobProvider.listenToAvailableJobs(vehicleType);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: const Color(0xFF0F0F11),
-      drawer: _buildSettingsDrawer(context),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildLiveMapSection(),
-                    _buildMetricsGrid(),
-                    _buildIncomingRequestsSection(),
-                    const SizedBox(height: 24),
-                  ],
+    return Consumer2<DriverProvider, JobProvider>(
+      builder: (context, driverProvider, jobProvider, _) {
+        final driverName = driverProvider.driverProfile?.name ?? 'Driver';
+        final driverEmail = driverProvider.driverProfile?.email ?? '';
+        final vehicleType = driverProvider.driverProfile?.vehicleType ?? 'Vehicle';
+        final isOnline = driverProvider.isOnline;
+        final availableJobs = jobProvider.availableJobs;
+
+        // Start listening to available jobs when vehicle type becomes available
+        if (driverProvider.driverProfile != null &&
+            driverProvider.driverProfile!.vehicleType.isNotEmpty &&
+            availableJobs.isEmpty &&
+            !jobProvider.isLoading) {
+          jobProvider.listenToAvailableJobs(driverProvider.driverProfile!.vehicleType);
+        }
+
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: const Color(0xFF0F0F11),
+          drawer: _buildSettingsDrawer(context, driverName, driverEmail),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context, driverName, vehicleType, isOnline),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        _buildLiveMapSection(),
+                        _buildMetricsGrid(jobProvider),
+                        _buildIncomingRequestsSection(availableJobs, jobProvider, driverProvider),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                _buildOfflineToggle(isOnline, driverProvider),
+              ],
             ),
-            _buildOfflineToggle(),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   // Premium Header Layout
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, String name, String vehicleType, bool isOnline) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: const BoxDecoration(
@@ -78,13 +109,13 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
                 const CircleAvatar(
                   radius: 24,
                   backgroundColor: Color(0xFF33333A),
-                  backgroundImage: NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb'), 
+                  child: Icon(Icons.person, color: Colors.white),
                 ),
                 Container(
                   height: 12,
                   width: 12,
                   decoration: BoxDecoration(
-                    color: _isOnline ? const Color(0xFF10B981) : Colors.grey,
+                    color: isOnline ? const Color(0xFF10B981) : Colors.grey,
                     shape: BoxShape.circle,
                     border: Border.all(color: const Color(0xFF16161A), width: 2),
                   ),
@@ -97,18 +128,18 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Hamza",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 2),
                 Row(
-                  children: const [
-                    Icon(Icons.local_shipping_outlined, color: Color(0xFFB8B8C4), size: 14),
-                    SizedBox(width: 4),
+                  children: [
+                    const Icon(Icons.local_shipping_outlined, color: Color(0xFFB8B8C4), size: 14),
+                    const SizedBox(width: 4),
                     Text(
-                      "Heavy Tow Truck (Plate 7741)",
-                      style: TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                      vehicleType,
+                      style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
                     ),
                   ],
                 )
@@ -125,40 +156,35 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
   }
 
   // Settings & Navigation Sidebar Drawer
-  Widget _buildSettingsDrawer(BuildContext context) {
+  Widget _buildSettingsDrawer(BuildContext context, String name, String email) {
     return Drawer(
       child: Container(
         color: const Color(0xFF16161A),
         child: Column(
           children: [
-            const UserAccountsDrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF0F0F11)),
-              currentAccountPicture: CircleAvatar(
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF0F0F11)),
+              currentAccountPicture: const CircleAvatar(
                 backgroundColor: Color(0xFF26262B),
                 child: Icon(Icons.person, color: Colors.white),
               ),
-              accountName: Text("Hamza", style: TextStyle(fontWeight: FontWeight.bold)),
-              accountEmail: Text("operator@bbp.qa", style: TextStyle(color: Color(0xFF8E8E93))),
+              accountName: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              accountEmail: Text(email, style: const TextStyle(color: Color(0xFF8E8E93))),
             ),
             ListTile(
               leading: const Icon(Icons.swap_horizontal_circle_outlined, color: Color(0xFF10B981)),
               title: const Text("Return to Customer App", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
               subtitle: const Text("Switch views instantly", style: TextStyle(color: Color(0xFF8E8E93), fontSize: 11)),
               onTap: () {
-                // 1. Close the navigation drawer side pane safely first
-                Navigator.of(context).pop(); 
-                
-                // 2. Show user feedback notice
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text("Routing session back to Customer App view..."), 
+                    content: Text("Routing session back to Customer App view..."),
                     backgroundColor: Color(0xFF013480),
                   ),
                 );
-
-                // 3. FIXED: Purge driver route tree from memory & reset stack seamlessly back to customer orchestrator
                 Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/customer/home', 
+                  '/customer/home',
                   (route) => false,
                 );
               },
@@ -171,7 +197,7 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
             const Spacer(),
             const Padding(
               padding: EdgeInsets.all(16.0),
-              child: Text("BBP Logistics v2.4.0", style: TextStyle(color: Color(0xFF44444F), fontSize: 12)),
+              child: Text("RoadResQ Driver v1.0.0", style: TextStyle(color: Color(0xFF44444F), fontSize: 12)),
             )
           ],
         ),
@@ -224,7 +250,7 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
                 const SizedBox(height: 8),
                 Text(
                   "Tracking Live in Doha Skyline Zone",
-                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, letterSpacing: 0.5),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, letterSpacing: 0.5),
                 ),
               ],
             ),
@@ -235,16 +261,19 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
   }
 
   // Dashboard Summary Matrix Blocks
-  Widget _buildMetricsGrid() {
+  Widget _buildMetricsGrid(JobProvider jobProvider) {
+    final completedJobs = jobProvider.driverJobHistory.where((j) => j.isCompleted).toList();
+    final totalEarned = completedJobs.fold<double>(0, (sum, j) => sum + j.price);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(child: _buildMetricTile("Jobs Finished", "14", Icons.task_alt, Colors.white)),
+          Expanded(child: _buildMetricTile("Jobs Finished", "${completedJobs.length}", Icons.task_alt, Colors.white)),
           const SizedBox(width: 12),
           Expanded(child: _buildMetricTile("Rating Status", "4.95 ★", Icons.star_outline_rounded, Colors.white)),
           const SizedBox(width: 12),
-          Expanded(child: _buildMetricTile("Gross Earned", "QAR 3,450", Icons.payments_outlined, const Color(0xFF10B981))),
+          Expanded(child: _buildMetricTile("Gross Earned", "QAR ${totalEarned.toStringAsFixed(0)}", Icons.payments_outlined, const Color(0xFF10B981))),
         ],
       ),
     );
@@ -271,19 +300,19 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
     );
   }
 
-  // Page View Layout for processing multiple incoming dispatch logs
-  Widget _buildIncomingRequestsSection() {
+  // Incoming dispatch jobs from Firestore
+  Widget _buildIncomingRequestsSection(List<JobModel> jobs, JobProvider jobProvider, DriverProvider driverProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16, top: 24, bottom: 12),
           child: Text(
-            "DISPATCH QUEUE (${_incomingRequests.length})",
+            "DISPATCH QUEUE (${jobs.length})",
             style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
         ),
-        if (_incomingRequests.isEmpty)
+        if (jobs.isEmpty)
           const Center(
             child: Padding(
               padding: EdgeInsets.all(32.0),
@@ -294,11 +323,11 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
           SizedBox(
             height: 210,
             child: PageView.builder(
-              itemCount: _incomingRequests.length,
+              itemCount: jobs.length,
               controller: PageController(viewportFraction: 0.92),
               itemBuilder: (context, index) {
-                final job = _incomingRequests[index];
-                return _buildJobOfferCard(context, job, index);
+                final job = jobs[index];
+                return _buildJobOfferCard(context, job, jobProvider, driverProvider);
               },
             ),
           )
@@ -306,7 +335,9 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
     );
   }
 
-  Widget _buildJobOfferCard(BuildContext context, Map<String, dynamic> job, int index) {
+  Widget _buildJobOfferCard(BuildContext context, JobModel job, JobProvider jobProvider, DriverProvider driverProvider) {
+    final driverUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Container(
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
@@ -321,23 +352,25 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(job["id"], style: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(job.id.substring(0, 8).toUpperCase(), style: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.bold, fontSize: 13)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0xFF26262B), borderRadius: BorderRadius.circular(4)),
-                child: Text(job["distance"], style: const TextStyle(color: Colors.white, fontSize: 11)),
+                child: Text(job.serviceType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11)),
               )
             ],
           ),
           const SizedBox(height: 12),
-          Text(job["customer"], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(job.vehicleType, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text(job["issue"], style: const TextStyle(color: Color(0xFFB8B8C4), fontSize: 13)),
+          Text(job.description ?? job.serviceType, style: const TextStyle(color: Color(0xFFB8B8C4), fontSize: 13)),
           Row(
             children: [
               const Icon(Icons.fmd_good, color: Color(0xFF636366), size: 14),
               const SizedBox(width: 4),
-              Text(job["location"], style: const TextStyle(color: Color(0xFF636366), fontSize: 12)),
+              Expanded(
+                child: Text(job.pickup, style: const TextStyle(color: Color(0xFF636366), fontSize: 12), overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const Spacer(),
@@ -351,9 +384,10 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
-                    setState(() {
-                      _incomingRequests.removeAt(index);
-                    });
+                    // Decline — just dismiss from UI (the job remains pending for others)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Job declined.')),
+                    );
                   },
                   child: const Text("Decline", style: TextStyle(color: Color(0xFFE54B4B), fontSize: 14)),
                 ),
@@ -367,10 +401,25 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => JobAcceptedScreen(jobDetails: job)),
+                  onPressed: () async {
+                    // Accept job via real backend
+                    final success = await jobProvider.acceptJob(
+                      jobId: job.id,
+                      driverId: driverUid,
                     );
+                    if (success && context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => JobAcceptedScreen(jobDetails: {
+                            'id': job.id,
+                            'customer': job.userId,
+                            'issue': job.description ?? job.serviceType,
+                            'location': job.pickup,
+                            'distance': '${job.distanceKm?.toStringAsFixed(1) ?? "N/A"} km',
+                          }),
+                        ),
+                      );
+                    }
                   },
                   child: const Text("Accept Job", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 ),
@@ -382,8 +431,10 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
     );
   }
 
-  // Go Offline Base Command Panel Toggle
-  Widget _buildOfflineToggle() {
+  // Go Offline/Online Toggle
+  Widget _buildOfflineToggle(bool isOnline, DriverProvider driverProvider) {
+    final driverUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
@@ -392,19 +443,17 @@ class _OperatorDashboardState extends State<OperatorDashboard> {
       ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _isOnline ? const Color(0xFF26262B) : const Color(0xFF10B981),
+          backgroundColor: isOnline ? const Color(0xFF26262B) : const Color(0xFF10B981),
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         onPressed: () {
-          setState(() {
-            _isOnline = !_isOnline;
-          });
+          driverProvider.toggleOnlineStatus(driverUid: driverUid);
         },
         child: Text(
-          _isOnline ? "Go Offline Mode" : "Go Active Online",
+          isOnline ? "Go Offline Mode" : "Go Active Online",
           style: TextStyle(
-            color: _isOnline ? const Color(0xFFE54B4B) : Colors.white,
+            color: isOnline ? const Color(0xFFE54B4B) : Colors.white,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),

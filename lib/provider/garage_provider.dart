@@ -102,6 +102,27 @@ class GarageProvider extends ChangeNotifier {
     }
   }
 
+  // ─── Register Garage (Workshop Onboarding) ─────────────────────────────────
+
+  Future<void> registerGarage(GarageModel garage) async {
+    _setLoading(true);
+    _clearError();
+    try {
+      await _garageService.addGarage(
+        name: garage.name,
+        location: garage.location,
+        ownerUid: garage.ownerUid,
+        phone: garage.phone,
+        geoPoint: garage.geoPoint,
+      );
+      await loadGarages();
+    } catch (e) {
+      _setError('Failed to register garage: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
   void _setLoading(bool value) {

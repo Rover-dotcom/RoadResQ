@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:road_resq/models/user_model.dart';
-import 'package:road_resq/screens/home_screen.dart';
 import 'package:road_resq/services/auth_services.dart';
 
 /// Login Provider — Week 1 + Week 2
@@ -9,6 +8,7 @@ import 'package:road_resq/services/auth_services.dart';
 ///   - Google Sign-In
 ///   - Email/Password Login
 ///   - Email/Password Registration
+///   - Password Reset
 ///   - Sign Out
 class LoginProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -18,6 +18,7 @@ class LoginProvider extends ChangeNotifier {
   bool _isGoogleLoginLoading = false;
   bool _isEmailLoginLoading = false;
   bool _isRegisterLoading = false;
+  bool _isResetLoading = false;
   String? _errorMessage;
   UserModel? _currentUser;
 
@@ -26,8 +27,9 @@ class LoginProvider extends ChangeNotifier {
   bool get isGoogleLoginLoading => _isGoogleLoginLoading;
   bool get isEmailLoginLoading => _isEmailLoginLoading;
   bool get isRegisterLoading => _isRegisterLoading;
+  bool get isResetLoading => _isResetLoading;
   bool get isLoading =>
-      _isGoogleLoginLoading || _isEmailLoginLoading || _isRegisterLoading;
+      _isGoogleLoginLoading || _isEmailLoginLoading || _isRegisterLoading || _isResetLoading;
   String? get errorMessage => _errorMessage;
   UserModel? get currentUser => _currentUser;
 
@@ -43,8 +45,8 @@ class LoginProvider extends ChangeNotifier {
 
       if (user != null) {
         _currentUser = user;
-        if (!context.mounted) return;
-        _navigateToHome(context);
+        notifyListeners();
+        // AuthGate in main.dart will automatically redirect to HomeScreen
       } else {
         if (!context.mounted) return;
         _showSnack(context, 'Login cancelled.');
@@ -60,7 +62,9 @@ class LoginProvider extends ChangeNotifier {
 
   // ─── Email Login ──────────────────────────────────────────────────────────────
 
-  Future<void> handleEmailLogin({
+  /// Returns true on success, false on failure. 
+  /// AuthGate handles navigation automatically on auth state change.
+  Future<bool> handleEmailLogin({
     required BuildContext context,
     required String email,
     required String password,
@@ -77,16 +81,19 @@ class LoginProvider extends ChangeNotifier {
 
       if (user != null) {
         _currentUser = user;
-        if (!context.mounted) return;
-        _navigateToHome(context);
+        notifyListeners();
+        // AuthGate will auto-redirect on auth state change
+        return true;
       } else {
-        if (!context.mounted) return;
+        if (!context.mounted) return false;
         _showSnack(context, 'Login failed. Please try again.');
+        return false;
       }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       _showSnack(context, _errorMessage!);
+      return false;
     } finally {
       _isEmailLoginLoading = false;
       notifyListeners();
@@ -95,7 +102,8 @@ class LoginProvider extends ChangeNotifier {
 
   // ─── Email Registration ───────────────────────────────────────────────────────
 
-  Future<void> handleEmailRegister({
+  /// Returns true on success, false on failure.
+  Future<bool> handleEmailRegister({
     required BuildContext context,
     required String name,
     required String email,
@@ -118,18 +126,60 @@ class LoginProvider extends ChangeNotifier {
 
       if (user != null) {
         _currentUser = user;
-        if (!context.mounted) return;
-        _navigateToHome(context);
+        notifyListeners();
+        // AuthGate will auto-redirect on auth state change
+        return true;
       } else {
-        if (!context.mounted) return;
+        if (!context.mounted) return false;
         _showSnack(context, 'Registration failed. Please try again.');
+        return false;
       }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       _showSnack(context, _errorMessage!);
+      return false;
     } finally {
       _isRegisterLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // ─── Password Reset ──────────────────────────────────────────────────────────
+
+  /// Sends a password reset email via Firebase Auth.
+  /// Returns true on success, false on failure.
+  Future<bool> sendPasswordReset({
+    required BuildContext context,
+    required String email,
+  }) async {
+    _isResetLoading = true;
+    _clearError();
+    notifyListeners();
+
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      if (!context.mounted) return false;
+      _showSnack(context, _errorMessage!);
+      return false;
+    } finally {
+      _isResetLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // ─── Load Current User Profile ───────────────────────────────────────────────
+
+  /// Loads the user profile from Firestore for the given uid.
+  Future<void> loadUserProfile(String uid) async {
+    try {
+      _currentUser = await _authService.getUserProfile(uid);
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Failed to load profile: $e';
       notifyListeners();
     }
   }
@@ -144,13 +194,6 @@ class LoginProvider extends ChangeNotifier {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-  void _navigateToHome(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
-  }
 
   void _showSnack(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(

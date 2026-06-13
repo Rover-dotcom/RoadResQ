@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/models/garage_model.dart';
+import 'package:road_resq/provider/garage_provider.dart';
 
 class WorkshopOnboardingWizard extends StatefulWidget {
   const WorkshopOnboardingWizard({super.key});
@@ -42,6 +46,10 @@ class _WorkshopOnboardingWizardState extends State<WorkshopOnboardingWizard> {
   }
 
   void _nextStep() {
+    // At step 3 (going to step 4 = submitted review), create the garage profile
+    if (_currentStep == 3) {
+      _submitGarageProfile();
+    }
     setState(() => _currentStep++);
   }
 
@@ -49,6 +57,24 @@ class _WorkshopOnboardingWizardState extends State<WorkshopOnboardingWizard> {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
     }
+  }
+
+  Future<void> _submitGarageProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final garageProvider = Provider.of<GarageProvider>(context, listen: false);
+    final garage = GarageModel(
+      id: '', // Will be set by Firestore
+      name: _workshopNameController.text.trim(),
+      location: _workshopLocationController.text.trim(),
+      ownerUid: user.uid,
+      phone: _workshopPhoneController.text.trim(),
+      isVerified: false,
+      createdAt: DateTime.now(),
+    );
+
+    await garageProvider.registerGarage(garage);
   }
 
   @override

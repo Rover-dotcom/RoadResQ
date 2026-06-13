@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/models/driver_model.dart';
+import 'package:road_resq/provider/driver_provider.dart';
 import 'package:road_resq/screens/driver_onboarding/driver_home_screen.dart';
 
 class DriverOnboardingWizard extends StatefulWidget {
@@ -51,6 +55,10 @@ class _DriverOnboardingWizardState extends State<DriverOnboardingWizard> {
   }
 
   void _nextStep() {
+    // At step 4 (going to step 5 = submission), create the driver profile
+    if (_currentStep == 4) {
+      _submitDriverProfile();
+    }
     setState(() => _currentStep++);
   }
 
@@ -58,6 +66,27 @@ class _DriverOnboardingWizardState extends State<DriverOnboardingWizard> {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
     }
+  }
+
+  Future<void> _submitDriverProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+    final driver = DriverModel(
+      uid: user.uid,
+      name: _fullNameController.text.trim(),
+      email: user.email ?? '',
+      phone: _phoneController.text.trim(),
+      vehicleType: _selectedVehicleType,
+      licenseNumber: _idNumberController.text.trim(),
+      isOnline: false,
+      isApproved: false,
+      experience: '',
+      createdAt: DateTime.now(),
+    );
+
+    await driverProvider.registerDriver(driver);
   }
 
   @override

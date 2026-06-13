@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/provider/job_provider.dart';
 import 'tow_flow_models.dart';
 
 // Clean relative pathing imports to bypass local file-system URI panics
@@ -112,7 +115,18 @@ class _TowFlowWizardState extends State<TowFlowWizard> {
           // Step 6: Bidding Board & Reverse Auction Matrix
           BiddingMarketplaceScreen(
             onBack: _handleBack,
-            onConfirmedBid: (driverId, finalizedPrice) {
+            onConfirmedBid: (driverId, finalizedPrice) async {
+              // Create real job in Firestore
+              final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+              final jobProvider = Provider.of<JobProvider>(context, listen: false);
+              await jobProvider.createJob(
+                userId: userId,
+                serviceType: 'tow',
+                vehicleType: _flowState.selectedVehicleType ?? 'Vehicle',
+                pickup: 'Pickup Location',
+                drop: 'Drop Location',
+                description: _flowState.issueDescription ?? 'Tow service request',
+              );
               _navigateToIndex(6);
             },
           ),

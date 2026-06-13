@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/provider/garage_provider.dart';
+import 'package:road_resq/provider/job_provider.dart';
 
 enum WorkshopFlowState {
   idleRequests,
@@ -38,6 +42,16 @@ class _WorkshopDashboardState extends State<WorkshopDashboard> {
   void initState() {
     super.initState();
     _resetControllersText();
+    _initGarageData();
+  }
+
+  void _initGarageData() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final garageProvider = Provider.of<GarageProvider>(context, listen: false);
+    garageProvider.loadGarages();
+    garageProvider.listenToGarages();
   }
 
   void _resetControllersText() {
@@ -91,26 +105,33 @@ class _WorkshopDashboardState extends State<WorkshopDashboard> {
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Doha Elite Auto Services',
-                      style: TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    SizedBox(height: 2),
-                    Row(
+              Expanded(
+                child: Consumer<GarageProvider>(
+                  builder: (context, garageProvider, _) {
+                    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                    final myGarage = garageProvider.garages.where((g) => g.ownerUid == uid).isNotEmpty
+                        ? garageProvider.garages.firstWhere((g) => g.ownerUid == uid)
+                        : null;
+                    final garageName = myGarage?.name ?? 'My Workshop';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.star, color: Color(0xFFFBBF24), size: 11),
-                        SizedBox(width: 2),
-                        Text('4.9', style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: Color(0xFF9CA3AF), fontWeight: FontWeight.bold)),
-                        SizedBox(width: 6),
-                        Text('• 1,420 Jobs', style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: Color(0xFF9CA3AF))),
+                        Text(
+                          garageName,
+                          style: const TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 2),
+                        const Row(
+                          children: [
+                            Icon(Icons.star, color: Color(0xFFFBBF24), size: 11),
+                            SizedBox(width: 2),
+                            Text('4.9', style: TextStyle(fontFamily: 'Inter', fontSize: 10, color: Color(0xFF9CA3AF), fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ],
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -163,13 +184,22 @@ class _WorkshopDashboardState extends State<WorkshopDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const UserAccountsDrawerHeader(
-                  decoration: BoxDecoration(color: Color(0xFF111827)),
-                  currentAccountPicture: CircleAvatar(
-                    backgroundImage: NetworkImage('https://images.unsplash.com/photo-1617814076367-b759c7d7e738?q=80&w=100&auto=format&fit=crop'),
+                UserAccountsDrawerHeader(
+                  decoration: const BoxDecoration(color: Color(0xFF111827)),
+                  currentAccountPicture: const CircleAvatar(
+                    backgroundColor: Color(0xFF26262B),
+                    child: Icon(Icons.build, color: Colors.white),
                   ),
-                  accountName: Text('Doha Elite Auto Services', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold)),
-                  accountEmail: Text('operations@dohaeliteauto.qa', style: TextStyle(fontFamily: 'Inter', color: Color(0xFF9CA3AF), fontSize: 12)),
+                  accountName: Consumer<GarageProvider>(
+                    builder: (context, gp, _) {
+                      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                      final myGarage = gp.garages.where((g) => g.ownerUid == uid).isNotEmpty
+                          ? gp.garages.firstWhere((g) => g.ownerUid == uid)
+                          : null;
+                      return Text(myGarage?.name ?? 'My Workshop', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold));
+                    },
+                  ),
+                  accountEmail: Text(FirebaseAuth.instance.currentUser?.email ?? '', style: const TextStyle(fontFamily: 'Inter', color: Color(0xFF9CA3AF), fontSize: 12)),
                 ),
                 
                 Padding(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:road_resq/provider/job_provider.dart';
 import 'widgets/header.dart';
 import 'widgets/location_card.dart';
 import 'widgets/news_ticker.dart';
@@ -37,10 +40,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late final Animation<double> _entranceFade;
   late final Animation<Offset> _entranceSlide;
 
-  final bool _hasActiveService = true;
-  final String _activeServiceName = "Flatbed Tow Rescue — Mesaieed Route";
-  final String _activeServiceStatus = "Driver en route (ETA 12 mins)";
-
   final List<String> _newsItems = [
     "Mesaieed Route clear: Automated dynamic pricing active.",
     "Specialized heavy equipment flatbeds deployed near Sealine.",
@@ -67,6 +66,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         setState(() => _currentNewsIndex = (_currentNewsIndex + 1) % _newsItems.length);
       }
     });
+
+    // Start listening to user's active jobs
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      Provider.of<JobProvider>(context, listen: false).listenToUserJobHistory(uid);
+    }
   }
 
   @override
@@ -144,104 +149,116 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildActiveServicesSection() {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOutCubic,
-      child: _hasActiveService
-          ? Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+    return Consumer<JobProvider>(
+      builder: (context, jobProvider, _) {
+        // Find the latest active job (not completed or cancelled)
+        final activeJobs = jobProvider.userJobHistory
+            .where((j) => !j.isCompleted && !j.isCancelled)
+            .toList();
+        final hasActive = activeJobs.isNotEmpty;
+        final activeJob = hasActive ? activeJobs.first : null;
+
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOutCubic,
+          child: hasActive
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _PulsingDot(),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Active Request',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF111827),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF1E40AF).withValues(alpha: 0.15),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E40AF).withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
+                      Row(
+                        children: [
+                          const _PulsingDot(),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Active Request',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF111827),
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.local_shipping_rounded,
-                            color: Color(0xFF1E40AF),
-                            size: 22,
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF1E40AF).withValues(alpha: 0.15),
+                            width: 1,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _activeServiceName,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1F2937),
-                                ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E40AF).withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
                               ),
-                              const SizedBox(height: 4),
-                              Row(
+                              child: const Icon(
+                                Icons.local_shipping_rounded,
+                                color: Color(0xFF1E40AF),
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const _PulsingDot(size: 6),
-                                  const SizedBox(width: 5),
                                   Text(
-                                    _activeServiceStatus,
+                                    '${activeJob!.serviceType.toUpperCase()} — ${activeJob.pickup}',
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
-                                      fontSize: 12,
-                                      color: Color(0xFF2563EB),
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1F2937),
                                     ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const _PulsingDot(size: 6),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        activeJob.statusLabel,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 12,
+                                          color: Color(0xFF2563EB),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                          ],
                         ),
-                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            )
-          : const SizedBox.shrink(),
+                )
+              : const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

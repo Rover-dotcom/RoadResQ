@@ -448,7 +448,22 @@ class _RepairFlowWizardState extends State<RepairFlowWizard> {
         return SummaryScreen(
           key: const ValueKey('step_summary'),
           onBack: _regress,
-          onConfirm: _advance,
+          onConfirm: () async {
+            // Create real job in Firestore
+            final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+            final jobProvider = Provider.of<JobProvider>(context, listen: false);
+            final garageProvider = Provider.of<GarageProvider>(context, listen: false);
+            await jobProvider.createJob(
+              userId: userId,
+              serviceType: 'repair',
+              vehicleType: 'Vehicle',
+              pickup: 'Customer Location',
+              drop: garageProvider.selectedGarage?.location ?? 'Garage',
+              garageId: garageProvider.selectedGarage?.id,
+              description: 'Repair service request',
+            );
+            _advance();
+          },
         );
       case 7:
         return DriverAssignedScreen(
